@@ -1,0 +1,77 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## What this is
+
+Picsur is a self-hosted image host (Imgur/Pastebin hybrid). It's a Yarn (Berry, `yarn@3.2.2`) monorepo with three workspaces under `package.json` `workspaces`: `shared`, `backend`, `frontend`. Node `v18.8` (`.nvmrc`).
+
+## Workspace layout & build order
+
+- `shared/` (`picsur-shared`) — DTOs, entity interfaces, Zod validators, the `Failable` error type, and util helpers used by **both** backend and frontend. Compiled to `shared/dist`.
+- `backend/` (`picsur-backend`) — NestJS 9 on Fastify, TypeORM + Postgres.
+- `frontend/` (`picsur-frontend`) — Angular 15 + Angular Material + Bootstrap.
+
+**Critical:** backend and frontend import from the *compiled* output `picsur-shared/dist/...`, not source. `shared` must be built before (or watched alongside) the other two, or imports break. There is no top-level script that orchestrates all three — run each workspace's dev process separately.
+
+## Common commands
+
+Run from repo root unless noted. Dev database (Postgres 14, db/user/pass all `picsur`, port 5432):
+
+```bash
+yarn devdb:start      # docker-compose up -d the dev postgres
+yarn devdb:stop
+yarn devdb:remove     # also drops the volume
+```
+
+Per workspace (`cd shared|backend|frontend` first, or `yarn workspace <name> <script>`):
+
+```bash
+# shared
+yarn build            # tsc once
+yarn start            # tsc-watch (rebuild on change — keep running during dev)
+
+# backend (NestJS)
+yarn start:dev        # nest start --watch (depends on shared/dist + devdb)
+yarn build            # nest build
+yarn lint             # eslint --fix
+yarn migrate          # generate a TypeORM migration from entity changes (PICSUR_PRODUCTION=true)
+
+# frontend (Angular)
+yarn start            # ng serve --host 0.0.0.0
+yarn build            # ng build
+```
+
+Formatting is Prettier from root: `yarn format`. There is no test runner wired up (no `test` scripts beyond Nest scaffolding).
+
+Production build/release is a two-stage Docker buildx via `support/build.sh alpha|stable` (pushes to `ghcr.io/rubikscraft/picsur`). It builds version from root `package.json`; bump versions with `yarn setversion`.
+
+## Architecture
+
+### The `Failable` pattern (shared/src/types/failable.ts)
+
+This is the core error-handling convention across the **entire** backend and frontend — used in ~40+ files. Functions that can fail return `AsyncFailable<T>` / `Failable<T>` (= `T | Failure`) instead of throwing. Callers check with `HasFailed(result)` (narrows to `Failure`) before using the value. Construct failures with `Fail(FT.NotFound, ...)` where `FT` is the failure-type enum (each maps to an HTTP code). Use `ThrowIfFailed(...)` in controllers to convert a `Failure` into a thrown error the exception filter handles. **Do not `throw` for expected error conditions — return a `Fail(...)`.**
+
+### Backend request pipeline (backend/src/main.ts, layers/)
+
+Global, applied in `main.ts`: `MainExceptionFilter` → `SuccessInterceptor` (wraps responses in the standard API envelope) → `ZodValidationPipe` → guards `PicsurThrottlerGuard` then `MainAuthGuard`. Everything routes through these — new endpoints get validation, throttling, auth, and response wrapping for free.
+
+- **Validation:** DTOs are Zod schemas in `shared/src/dto`, turned into Nest DTO classes via `createZodDto`. The same schemas validate on the frontend. Add/change a request or response shape in `shared`, not in the controller.
+- **Auth:** permission-based. `Permission` enum (`shared/src/dto/permissions.enum.ts`) gates routes via the `@RequiredPermissions(...)` decorator; roles bundle permissions. Passport strategies: JWT, local, and header API key. The guest role's permissions control anonymous access (e.g. whether registration/anonymous upload is allowed).
+
+### Backend layers (backend/src)
+
+- `routes/` — controllers, grouped `routes/api/*` (JSON API under `/api`) and `routes/image/*` (image upload + the public `/i` image-serving route, which has its own permissive CORS set in `app.module.ts`).
+- `managers/` — business logic (`auth`, `image`, `usage`, `demo`). Image manager does conversion/processing.
+- `collections/` — `*-db.service.ts` data-access layer wrapping TypeORM repositories (users, roles, images, apikeys, preferences, system-state).
+- `config/early` & `config/late` — config services reading `PICSUR_*` env vars (prefix in `config.static.ts`). Defaults: host `0.0.0.0`, port `8080`. Notable vars: `PICSUR_PRODUCTION`, `PICSUR_DEMO`, `PICSUR_DEMO_INTERVAL`, `PICSUR_TELEMETRY`, `PICSUR_STATIC_FRONTEND_ROOT`. In production the backend also serves the built frontend statically.
+- `workers/sharp` — image transforms run via `sharp`. Supported/processed formats also include QOI and BMP via dedicated libs.
+- `database/` — TypeORM entities (`entities/`) and `migrations/` (named `<timestamp>-V_x_y_z.ts`). `datasource.ts` bootstraps a Nest app just to build the `DataSource` for the TypeORM CLI.
+
+### ESM note
+
+Backend is pure ESM (`"type": "module"`). It runs with `node --es-module-specifier-resolution=node` (see backend `start*` scripts) because imports are extensionless. Keep that flag when adding run commands.
+
+### Frontend (frontend/src/app)
+
+Standard Angular 15 module structure: `routes/`, `components/`, `services/` (`services/api/*` wrap the backend, built on `services/api/api.service.ts`), `guards/`, `pipes/`. It shares DTOs/validators with the backend via `picsur-shared`. Custom webpack config (`custom-webpack.config.js`) trims moment.js locales.
