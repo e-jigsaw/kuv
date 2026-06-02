@@ -62,11 +62,20 @@ Global, applied in `main.ts`: `MainExceptionFilter` → `SuccessInterceptor` (wr
 ### Backend layers (backend/src)
 
 - `routes/` — controllers, grouped `routes/api/*` (JSON API under `/api`) and `routes/image/*` (image upload + the public `/i` image-serving route, which has its own permissive CORS set in `app.module.ts`).
-- `managers/` — business logic (`auth`, `image`, `usage`, `demo`). Image manager does conversion/processing.
+- `managers/` — business logic (`auth`, `image`, `usage`, `demo`). The image manager (`managers/image`) splits into `image.service` (orchestration), `image-processor.service` (ingest processing — exif strip etc.), `image-converter.service` (format/edit conversion via `sharp`), and `webpinfo` (animated-WebP detection).
 - `collections/` — `*-db.service.ts` data-access layer wrapping TypeORM repositories (users, roles, images, apikeys, preferences, system-state).
 - `config/early` & `config/late` — config services reading `PICSUR_*` env vars (prefix in `config.static.ts`). Defaults: host `0.0.0.0`, port `8080`. Notable vars: `PICSUR_PRODUCTION`, `PICSUR_DEMO`, `PICSUR_DEMO_INTERVAL`, `PICSUR_TELEMETRY`, `PICSUR_STATIC_FRONTEND_ROOT`. In production the backend also serves the built frontend statically.
 - `workers/sharp` — image transforms run via `sharp`. Supported/processed formats also include QOI and BMP via dedicated libs.
-- `database/` — TypeORM entities (`entities/`) and `migrations/` (named `<timestamp>-V_x_y_z.ts`). `datasource.ts` bootstraps a Nest app just to build the `DataSource` for the TypeORM CLI.
+- `database/` — TypeORM entities (`entities/`) and `migrations/` (named `<timestamp>-V_x_y_z.ts`). `datasource.ts` bootstraps a Nest app just to build the `DataSource` for the TypeORM CLI. **Note:** there are two generations of image entities. The original `image*.entity.ts` are legacy (still listed in `entities/index.ts` `EntityList` for back-compat), but the live code path uses the `*.entity.v2.ts` set (`EImageBackendV2` / `EImageFileBackendV2` / `EImageDerivativeBackendV2`), added in migration `V_0_6_0_a`. When changing image storage, edit the **v2** entities.
+
+### Image storage & derivative cache (backend/src/managers/image, collections/image-db)
+
+Images are stored as binary (`bytea`) **directly in Postgres**, not on disk:
+
+- An image's `id` is the **SHA-256 hash of the uploaded buffer** (content-addressed, so identical uploads dedupe). `EImageBackendV2` holds metadata (`user_id`, `created`, `file_name`, `expires_at`, optional `delete_key`).
+- `EImageFileBackendV2` holds the actual file bytes per `ImageEntryVariant`: `MASTER` (the processed/ingested version, always present) and optionally `ORIGINAL` (kept only when the user's `KeepOriginal` preference is on).
+- `EImageDerivativeBackendV2` is an **on-demand conversion cache**: when a client requests a format/edit, `getConverted` computes a `converted_key = sha256(JSON.stringify(options))`, looks up a cached derivative, and only runs `sharp` conversion on a miss. `last_read` tracks freshness for cache eviction. Edit operations (resize/rotate/etc.) are gated by the `AllowEditing` system preference.
+- Concurrent identical conversions are de-duplicated via `MutexFallBack` (`util/mutex-fallback.ts`) so the same derivative isn't generated twice in parallel.
 
 ### ESM note
 
