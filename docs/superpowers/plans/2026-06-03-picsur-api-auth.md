@@ -413,7 +413,7 @@ git commit -m "test(api): add testcontainers postgres harness and admin seed hel
 **Files:**
 - Create: `packages/api/src/db/queries.ts`
 
-- [ ] **Step 1: 実装 — `packages/api/src/db/queries.ts`**
+- [x] **Step 1: 実装 — `packages/api/src/db/queries.ts`**
 
 ```ts
 import { apikey, user } from "@picsur/shared";
@@ -471,12 +471,12 @@ export async function resolveApikey(
 }
 ```
 
-- [ ] **Step 2: typecheck**
+- [x] **Step 2: typecheck**
 
 Run: `pnpm --filter @picsur/api typecheck`
 Expected: エラー無し。
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add -A
