@@ -13,7 +13,6 @@ yarn-error.log
 temp
 
 # pnpm / build outputs
-node_modules/
 dist/
 .vite/
 *.tsbuildinfo
