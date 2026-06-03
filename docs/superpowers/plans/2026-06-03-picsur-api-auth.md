@@ -315,7 +315,7 @@ git commit -m "feat(api): add hono/jwt sign/verify wrappers"
 - Create: `packages/api/vitest.config.ts`
 - Create: `packages/api/src/test/db.ts`
 
-- [ ] **Step 1: vitest 設定（testcontainers は起動が遅いので timeout 延長）— `packages/api/vitest.config.ts`**
+- [x] **Step 1: vitest 設定（testcontainers は起動が遅いので timeout 延長）— `packages/api/vitest.config.ts`**
 
 ```ts
 import { defineConfig } from "vitest/config";
@@ -328,7 +328,7 @@ export default defineConfig({
 });
 ```
 
-- [ ] **Step 2: testcontainers ヘルパを作成 — `packages/api/src/test/db.ts`**
+- [x] **Step 2: testcontainers ヘルパを作成 — `packages/api/src/test/db.ts`**
 
 ```ts
 import { readdirSync, readFileSync } from "node:fs";
@@ -394,12 +394,12 @@ export async function seedAdmin(
 
 > `node:fs/promises` の `glob` が無い Node 版の場合は、`readdirSync(drizzleDir).find(f => f.startsWith("0000_") && f.endsWith(".sql"))` で代替してよい（報告）。
 
-- [ ] **Step 3: typecheck で型確認**
+- [x] **Step 3: typecheck で型確認**
 
 Run: `pnpm --filter @picsur/api typecheck`
 Expected: エラー無し。
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add -A
