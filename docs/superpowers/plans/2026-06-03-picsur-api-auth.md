@@ -792,7 +792,7 @@ git commit -m "test(api): add auth integration tests (login, apikey, cookie) via
 
 ## Task 9: 最終確認
 
-- [ ] **Step 1: api 全テスト + ワークスペース全体の緑確認**
+- [x] **Step 1: api 全テスト + ワークスペース全体の緑確認**
 
 Run: `pnpm --filter @picsur/api test`
 Expected: password / jwt / app(health) / auth(統合) 全て PASS。
@@ -802,7 +802,7 @@ Expected: shared / api / web 全緑。
 
 > **注意（tsup と native 依存）**: api が `bcrypt`（native）と `pg` を import するようになった。tsup の `noExternal: [/@picsur\/shared/, /^hono/, /@hono\/node-server/]` は bcrypt/pg をバンドルしない（externalize される）。**この時点で api の `pnpm --filter @picsur/api build` が成功しても、runtime（dist/server.js）は bcrypt/pg を node_modules から要求する**ため、Plan 1 の「runtime に node_modules 無し」前提が崩れる。これは想定内で、**Dockerfile の runtime ステージに node_modules を入れる対応は Plan 5（deploy）で行う**。このタスクでは `pnpm -r build`（バンドル生成）が通ることだけ確認し、Docker runtime の node_modules 対応はしない。もし `tsup` ビルド自体が bcrypt の native 解決でエラーになる場合は報告（その場合 bcrypt を `external` に明示する等の対応を検討）。
 
-- [ ] **Step 2: Commit（変更があれば）**
+- [x] **Step 2: Commit（変更があれば）**
 
 このタスクで新規変更が無ければ commit 不要。
 

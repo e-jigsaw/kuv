@@ -37,7 +37,7 @@ test("login with correct credentials sets a cookie and returns user", async () =
   });
   expect(res.status).toBe(200);
   expect(res.headers.get("set-cookie")).toContain("picsur_jwt=");
-  const json = await res.json();
+  const json = (await res.json()) as { user: { username: string } };
   expect(json.user.username).toBe("admin");
 });
 
@@ -58,7 +58,7 @@ test("me without auth returns 401", async () => {
 test("me with apikey query returns the admin user", async () => {
   const res = await app.request("/api/auth/me?key=testkey123");
   expect(res.status).toBe(200);
-  const json = await res.json();
+  const json = (await res.json()) as { user: { username: string } };
   expect(json.user.username).toBe("admin");
 });
 
@@ -78,6 +78,6 @@ test("me with the login cookie returns the admin user", async () => {
   const cookie = login.headers.get("set-cookie")!.split(";")[0]!;
   const res = await app.request("/api/auth/me", { headers: { Cookie: cookie } });
   expect(res.status).toBe(200);
-  const json = await res.json();
+  const json = (await res.json()) as { user: { username: string } };
   expect(json.user.username).toBe("admin");
 });
