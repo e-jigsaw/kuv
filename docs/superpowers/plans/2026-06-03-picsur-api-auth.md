@@ -684,7 +684,7 @@ git commit -m "feat(api): add auth routes (login/logout/me) and mount on app"
 **Files:**
 - Create: `packages/api/src/routes/auth.test.ts`
 
-- [ ] **Step 1: 統合テストを書く — `packages/api/src/routes/auth.test.ts`**
+- [x] **Step 1: 統合テストを書く — `packages/api/src/routes/auth.test.ts`**
 
 テスト DB を `createApp` に注入してアプリを組む（本番と同じ配線を再利用）。
 
@@ -774,14 +774,14 @@ test("me with the login cookie returns the admin user", async () => {
 });
 ```
 
-- [ ] **Step 2: テスト実行（testcontainers が docker で postgres を起動）**
+- [x] **Step 2: テスト実行（testcontainers が docker で postgres を起動）**
 
 Run: `pnpm --filter @picsur/api test auth`
 Expected: 全テスト PASS（login 成功/失敗、me の未認証/apikey クエリ/apikey ヘッダ/cookie）。
 
 > docker daemon が無い環境ではこのテストは起動できない。その場合は BLOCKED ではなく、テストファイルは作成し、テストが docker 必須である旨を報告（DONE_WITH_CONCERNS）。この環境は docker が動く実績あり。
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add -A
