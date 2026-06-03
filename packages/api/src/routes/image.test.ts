@@ -8,12 +8,14 @@ import type { AppBindings } from "../types";
 
 let tdb: TestDb;
 let app: Hono<AppBindings>;
+let cookie: string;
 
 beforeAll(async () => {
   process.env.PICSUR_JWT_SECRET = "test-secret";
   tdb = await startTestDb();
   await seedAdmin(tdb.db, "admin", await hashPassword("hunter2"));
   app = createApp(tdb.db);
+  cookie = await loginCookie();
 });
 
 afterAll(async () => {
@@ -44,7 +46,6 @@ test("upload without auth returns 401", async () => {
 });
 
 test("upload a png returns id and links", async () => {
-  const cookie = await loginCookie();
   const buf = await fixture("red.png");
   const res = await app.request("/api/image", {
     method: "POST",
@@ -60,10 +61,10 @@ test("upload a png returns id and links", async () => {
   expect(json.id).toMatch(/^[0-9a-f]{64}$/);
   expect(json.file_name).toBe("red.png");
   expect(json.links.view).toBe(`/i/${json.id}`);
+  expect(json.links.direct).toBe(`/i/${json.id}.png`);
 });
 
 test("uploading the same bytes twice dedupes to the same id", async () => {
-  const cookie = await loginCookie();
   const buf = await fixture("still.webp");
   const first = await app.request("/api/image", {
     method: "POST",
@@ -87,7 +88,6 @@ test("uploading the same bytes twice dedupes to the same id", async () => {
 });
 
 test("uploading a non-image returns 415", async () => {
-  const cookie = await loginCookie();
   const res = await app.request("/api/image", {
     method: "POST",
     headers: { Cookie: cookie },

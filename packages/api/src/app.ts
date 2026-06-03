@@ -19,6 +19,11 @@ export function createApp(database: Db): Hono<AppBindings> {
   app.route("/api/auth", authRoutes);
   app.route("/api/image", imageRoutes);
 
+  app.onError((err, c) => {
+    console.error(err);
+    return c.json({ error: "internal error" }, 500);
+  });
+
   return app;
 }
 

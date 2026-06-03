@@ -24,6 +24,7 @@ function links(id: string, mime: string) {
 }
 
 // アップロード（要認証）。multipart の "file" フィールドを受け取る。
+// 自家用・単一ユーザー前提のため bodyLimit は意図的に未設定
 imageRoutes.post("/", requireAuth, async (c) => {
   const body = await c.req.parseBody();
   const file = body["file"];
@@ -31,7 +32,6 @@ imageRoutes.post("/", requireAuth, async (c) => {
     return c.json({ error: "no file" }, 400);
   }
   const buf = Buffer.from(await file.arrayBuffer());
-  const user = c.var.user!;
 
   // dedupe: 既存 id なら再処理せず既存を返す
   const id = hashBuffer(buf);
@@ -41,6 +41,7 @@ imageRoutes.post("/", requireAuth, async (c) => {
     return c.json({ id: existing.id, file_name: existing.fileName, links: links(id, "image/png") });
   }
 
+  const user = c.var.user!;
   const settings = await getSettings(c.var.db);
   const result = await processImage(buf, settings.keepOriginal);
   if (!result) {
