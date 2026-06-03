@@ -1,5 +1,7 @@
+import { sql } from "drizzle-orm";
 import {
   boolean,
+  check,
   pgTable,
   smallint,
   text,
@@ -26,8 +28,12 @@ export const apikey = pgTable("apikey", {
   lastUsed: timestamp("last_used", { withTimezone: true }),
 });
 
-// アプリ設定（単一行: id=1 を読み書きする）
-export const settings = pgTable("settings", {
-  id: smallint("id").primaryKey().default(1),
-  keepOriginal: boolean("keep_original").notNull().default(false),
-});
+// アプリ設定（単一行: id=1 のみ。CHECK で単一行を強制）
+export const settings = pgTable(
+  "settings",
+  {
+    id: smallint("id").primaryKey().default(1),
+    keepOriginal: boolean("keep_original").notNull().default(false),
+  },
+  (t) => [check("settings_single_row", sql`${t.id} = 1`)],
+);
