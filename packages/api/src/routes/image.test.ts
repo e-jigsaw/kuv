@@ -95,3 +95,37 @@ test("uploading a non-image returns 415", async () => {
   });
   expect(res.status).toBe(415);
 });
+
+test("delete without auth returns 401", async () => {
+  const res = await app.request("/api/image/whatever", { method: "DELETE" });
+  expect(res.status).toBe(401);
+});
+
+test("delete removes an uploaded image", async () => {
+  const up = await app.request("/api/image", {
+    method: "POST",
+    headers: { Cookie: cookie },
+    body: form(await fixture("red.png"), "red.png", "image/png"),
+  });
+  const { id } = (await up.json()) as { id: string };
+
+  const del = await app.request(`/api/image/${id}`, {
+    method: "DELETE",
+    headers: { Cookie: cookie },
+  });
+  expect(del.status).toBe(200);
+
+  const { rows } = await tdb.pool.query(
+    "select count(*)::int as n from image where id = $1",
+    [id],
+  );
+  expect(rows[0].n).toBe(0);
+});
+
+test("deleting a missing image returns 404", async () => {
+  const res = await app.request("/api/image/does-not-exist", {
+    method: "DELETE",
+    headers: { Cookie: cookie },
+  });
+  expect(res.status).toBe(404);
+});

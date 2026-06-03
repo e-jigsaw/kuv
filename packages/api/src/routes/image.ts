@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { requireAuth } from "../middleware/auth";
 import {
+  deleteImage,
   findImageById,
   getSettings,
   insertImage,
@@ -61,4 +62,12 @@ imageRoutes.post("/", requireAuth, async (c) => {
     file_name: fileName,
     links: links(result.id, result.master.filetype),
   });
+});
+
+// 削除（要認証）。所有者一致のみ。
+imageRoutes.delete("/:id", requireAuth, async (c) => {
+  const id = c.req.param("id");
+  const ok = await deleteImage(c.var.db, id, c.var.user!.id);
+  if (!ok) return c.json({ error: "not found" }, 404);
+  return c.json({ ok: true });
 });
