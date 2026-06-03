@@ -8,7 +8,7 @@ import {
 } from "@picsur/shared";
 import { drizzle } from "drizzle-orm/node-postgres";
 import pg from "pg";
-import { env } from "./env.js";
+import { env } from "./env";
 
 // drizzle に渡すのはテーブルだけ（version 定数や DTO は含めない）
 const schema = { user, apikey, settings, image, imageFile, imageDerivative };

@@ -13,5 +13,8 @@
     "typecheck": "pnpm -r typecheck",
     "dev:api": "pnpm --filter @picsur/api dev",
     "dev:web": "pnpm --filter @picsur/web dev"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": ["bcrypt"]
   }
 }
