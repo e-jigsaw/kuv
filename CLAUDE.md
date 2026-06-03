@@ -2,6 +2,11 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+> **⚠️ 全面書き直し進行中（2026-06）。** このリポジトリは Hono + Drizzle + Vike の新スタックへ移行中。
+> 旧 NestJS/Angular 実装は `archive/` に退避済み（参照専用）。新コードは `packages/{shared,api,web}` の pnpm workspace。
+> 設計は `docs/superpowers/specs/2026-06-03-picsur-rewrite-design.md`、足場計画は `docs/superpowers/plans/2026-06-03-picsur-foundation.md` を参照。
+> 以下の旧アーキテクチャ記述は `archive/` のコードについての説明。
+
 ## What this is
 
 Picsur is a self-hosted image host (Imgur/Pastebin hybrid). It's a Yarn (Berry, `yarn@3.2.2`) monorepo with three workspaces under `package.json` `workspaces`: `shared`, `backend`, `frontend`. Node `v18.8` (`.nvmrc`).
