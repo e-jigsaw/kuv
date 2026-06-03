@@ -10,9 +10,16 @@
   "scripts": {
     "build": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "db:generate": "drizzle-kit generate"
+  },
+  "dependencies": {
+    "drizzle-orm": "^0.38.0",
+    "drizzle-zod": "^0.6.0",
+    "zod": "^3.24.0"
   },
   "devDependencies": {
+    "drizzle-kit": "^0.30.0",
     "typescript": "^5.7.0",
     "vitest": "^3.0.0"
   }
