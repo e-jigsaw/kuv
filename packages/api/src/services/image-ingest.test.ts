@@ -40,6 +40,13 @@ test("processImage keeps animation frames in the master", async () => {
   expect(meta.pages).toBe(2);
 });
 
+test("processImage keeps animation frames in a gif master", async () => {
+  const buf = await fixture("anim.gif");
+  const r = await processImage(buf, false);
+  const meta = await sharp(r!.master.data, { animated: true }).metadata();
+  expect(meta.pages).toBe(2);
+});
+
 test("processImage keeps the original (verbatim) when keepOriginal is true", async () => {
   const buf = await fixture("red.png");
   const r = await processImage(buf, true);

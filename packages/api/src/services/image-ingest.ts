@@ -4,7 +4,7 @@ import sharp from "sharp";
 import { detectImageType } from "./filetype";
 
 export interface IngestFile {
-  filetype: string;
+  filetype: SupportedMime;
   data: Buffer;
 }
 
@@ -36,6 +36,7 @@ export async function processImage(
   if (!detected) return null;
 
   const fmt = OUTPUT_FORMAT[detected.mime];
+  // sharp は withMetadata() 未指定時にメタデータを strip する（デフォルト動作）。
   const masterData = await sharp(buf, { animated: true })
     .toFormat(fmt)
     .toBuffer();
