@@ -48,6 +48,11 @@ test("insertImage with original stores both image_file rows", async () => {
     ["img-b"],
   );
   expect(rows.map((r) => r.variant)).toEqual(["master", "original"]);
+  const { rows: fileRows } = await t.pool.query(
+    "select data from image_file where image_id = $1 and variant = 'master'",
+    ["img-b"],
+  );
+  expect(Buffer.from(fileRows[0].data)).toEqual(Buffer.from([1, 2, 3]));
 });
 
 test("getSettings defaults keepOriginal to false when no row", async () => {
@@ -57,6 +62,7 @@ test("getSettings defaults keepOriginal to false when no row", async () => {
 test("getSettings reads keep_original from the settings row", async () => {
   await t.db.insert(settings).values({ id: 1, keepOriginal: true });
   expect(await getSettings(t.db)).toEqual({ keepOriginal: true });
+  await t.db.delete(settings);
 });
 
 test("deleteImage removes only the owner's image and cascades files", async () => {

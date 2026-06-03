@@ -22,6 +22,7 @@ export async function findImageById(
 }
 
 // image + image_file(master, +original) を1トランザクションで挿入。
+// 前提: 呼び出し前に findImageById で存在確認済みであること。同一 id の二重 insert は PK 違反で throw する。
 export async function insertImage(
   db: Db,
   meta: ImageMeta,
@@ -52,6 +53,7 @@ export async function insertImage(
 }
 
 // 所有者一致で削除。消えたら true（FK cascade で image_file/derivative も削除）。
+// userId は UUID 文字列であること。non-UUID を渡すと pg が uuid パースエラーを throw する。
 export async function deleteImage(
   db: Db,
   id: string,
