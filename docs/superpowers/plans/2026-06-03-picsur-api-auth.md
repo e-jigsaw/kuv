@@ -232,7 +232,7 @@ git commit -m "feat(api): add bcrypt password hashing utilities"
 - Create: `packages/api/src/auth/jwt.ts`
 - Test: `packages/api/src/auth/jwt.test.ts`
 
-- [ ] **Step 1: 失敗するテストを書く — `packages/api/src/auth/jwt.test.ts`**
+- [x] **Step 1: 失敗するテストを書く — `packages/api/src/auth/jwt.test.ts`**
 
 ```ts
 import { expect, test } from "vitest";
@@ -256,12 +256,12 @@ test("verifyAuthToken returns null for a wrong secret", async () => {
 });
 ```
 
-- [ ] **Step 2: テスト失敗を確認**
+- [x] **Step 2: テスト失敗を確認**
 
 Run: `pnpm --filter @picsur/api test jwt`
 Expected: FAIL（`./jwt` が無い）
 
-- [ ] **Step 3: 実装 — `packages/api/src/auth/jwt.ts`**
+- [x] **Step 3: 実装 — `packages/api/src/auth/jwt.ts`**
 
 ```ts
 import { sign, verify } from "hono/jwt";
@@ -295,12 +295,12 @@ export async function verifyAuthToken(
 }
 ```
 
-- [ ] **Step 4: テスト緑を確認**
+- [x] **Step 4: テスト緑を確認**
 
 Run: `pnpm --filter @picsur/api test jwt`
 Expected: PASS（3 test）
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add -A
