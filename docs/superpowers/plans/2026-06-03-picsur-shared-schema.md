@@ -14,13 +14,13 @@
 
 ## このプランで確定させる設計判断（レビュー対象）
 
-1. **DB ドライバ = postgres.js (`postgres`)**。軽量・pure JS で tsup バンドルと相性が良い。bytea は `Uint8Array`/`Buffer` で扱う（Drizzle の `customType<{ data: Buffer }>` で `bytea` を定義）。
+1. **DB ドライバ = pg (node-postgres)**。Drizzle は pg / postgres.js どちらもファーストクラスだが、pg は bytea を **Buffer** で返すので画像 bytea + sharp パイプラインと素直に噛む。**ただし driver 依存は Plan 3（api が実接続する所）で `pg` + `@types/pg` を api に追加する**。本プラン（shared）では driver 不要 —  `drizzle-kit generate` はオフライン、migration 適用は `psql -f`（raw SQL）で行う。bytea は Drizzle の `customType<{ data: Buffer }>` で定義。
 2. **`settings` は単一行テーブル**（`id smallint PK default 1`, `keep_original boolean not null default false`）。単一ユーザーなので key-value をやめて1行に集約。アプリは常に id=1 を読み書きする。
 3. **カラムは clean な命名で新規定義**（旧 `hashed_password`→`password`、`roles` は撤去）。**既存 prod DB のデータ引き継ぎ migration（旧 `e_*_backend_v2` テーブルの RENAME / `hashed_password`→`password` / roles 列 drop / preferences→settings 変換）は本プランの対象外で、Plan 5（deploy）で実 DB に対して別途行う**。本プランの migration は「空の DB に clean なスキーマを作る」CREATE migration。
 4. **migration 保存先 = `packages/shared/drizzle/`**、設定は `packages/shared/drizzle.config.ts`（`pnpm --filter @picsur/shared db:generate` が shared を cwd にして config を見つけられるよう shared 配下に置く）。
 5. **variant は `'master' | 'original'`**（旧 enum の `ingest` は未使用なので採用しない）。
 
-> **バージョン注記**: 記載の Drizzle 系バージョン（drizzle-orm ^0.38 / drizzle-zod ^0.6 / drizzle-kit ^0.30 / postgres ^3.4）は目安。インストール時に解決できない・API が異なる場合は、実際にインストールされた最新安定版の正しい流儀に合わせてよい（特に drizzle-zod の `createInsertSchema`/`createSelectSchema` シグネチャ、`pgTable` 第2引数の制約定義の書き方=オブジェクト返し vs 配列返し、が版で変わりうる）。**変更したら何をどう変えたか報告すること**。ゴールは「スキーマ・DTO・定数・初期 migration が揃い、テストと typecheck が緑」。
+> **バージョン注記**: 記載の Drizzle 系バージョン（drizzle-orm ^0.38 / drizzle-zod ^0.6 / drizzle-kit ^0.30）は目安。インストール時に解決できない・API が異なる場合は、実際にインストールされた最新安定版の正しい流儀に合わせてよい（特に drizzle-zod の `createInsertSchema`/`createSelectSchema` シグネチャ、`pgTable` 第2引数の制約定義の書き方=オブジェクト返し vs 配列返し、が版で変わりうる）。**変更したら何をどう変えたか報告すること**。ゴールは「スキーマ・DTO・定数・初期 migration が揃い、テストと typecheck が緑」。
 
 ---
 
@@ -76,7 +76,6 @@
   },
   "devDependencies": {
     "drizzle-kit": "^0.30.0",
-    "postgres": "^3.4.5",
     "typescript": "^5.7.0",
     "vitest": "^3.0.0"
   }
@@ -432,14 +431,15 @@ Expected: `packages/shared/drizzle/0000_*.sql`（CREATE TABLE 群）と `package
 Run: `cat packages/shared/drizzle/0000_*.sql`
 Expected: `user` / `apikey` / `settings` / `image` / `image_file` / `image_derivative` の CREATE TABLE が含まれ、`image_file`・`image_derivative` の `data` カラムが `bytea`、FK が `image_id`→`image`・`user_id`→`user`、unique 制約（image_id+variant, image_id+key）がある。
 
-- [ ] **Step 3: dev postgres を起動して migration を適用（best-effort）**
+- [ ] **Step 3: dev postgres を起動して migration を適用（best-effort, driver 不要の psql 方式）**
 
 Run: `docker compose up -d postgres`
-Run（postgres が healthy になるまで待ってから）:
-`docker compose exec -T postgres psql -U picsur -d picsur -f - < packages/shared/drizzle/0000_*.sql`
-（または drizzle-kit migrate を使う: `PICSUR_DB_HOST=localhost pnpm --filter @picsur/shared exec drizzle-kit migrate` — config の dbCredentials を使い localhost:5432 へ適用）
+Run（postgres が healthy になるまで待ってから、生成 SQL を psql に流し込む）:
+`docker compose exec -T postgres psql -U picsur -d picsur < packages/shared/drizzle/0000_*.sql`
 
-Expected: エラー無く適用される。
+Expected: エラー無く適用される（CREATE TABLE / CREATE 制約が成功）。
+
+> drizzle-kit の statement-breakpoint コメント（`--> statement-breakpoint`）は psql ではただのコメントとして無視されるので、生成 SQL をそのまま流して問題ない。JS の driver は使わない。
 
 - [ ] **Step 4: テーブルが出来たか確認**
 
