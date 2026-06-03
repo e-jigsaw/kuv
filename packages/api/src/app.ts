@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { db, type Db } from "./db";
 import { authMiddleware } from "./middleware/auth";
 import { authRoutes } from "./routes/auth";
+import { imageRoutes } from "./routes/image";
 import type { AppBindings } from "./types";
 
 export function createApp(database: Db): Hono<AppBindings> {
@@ -16,6 +17,7 @@ export function createApp(database: Db): Hono<AppBindings> {
 
   app.get("/api/health", (c) => c.json({ ok: true }));
   app.route("/api/auth", authRoutes);
+  app.route("/api/image", imageRoutes);
 
   return app;
 }
