@@ -572,7 +572,7 @@ git commit -m "feat(api): add auth middleware (jwt cookie + apikey) and app bind
 - Create: `packages/api/src/routes/auth.ts`
 - Modify: `packages/api/src/app.ts`
 
-- [ ] **Step 1: 認証ルートを実装 — `packages/api/src/routes/auth.ts`**
+- [x] **Step 1: 認証ルートを実装 — `packages/api/src/routes/auth.ts`**
 
 ```ts
 import { Hono } from "hono";
@@ -629,7 +629,7 @@ authRoutes.get("/me", requireAuth, (c) => {
 });
 ```
 
-- [ ] **Step 2: app.ts を `createApp(db)` ファクトリ化して auth ルートを mount — `packages/api/src/app.ts`**
+- [x] **Step 2: app.ts を `createApp(db)` ファクトリ化して auth ルートを mount — `packages/api/src/app.ts`**
 
 テストと本番で同じ配線を使えるよう、`db` を引数に取る `createApp` ファクトリにする（テストはテスト db を渡すだけで済み、配線の drift を防ぐ）。既存の `app` export も維持して health テストや server.ts が壊れないようにする。
 
@@ -662,7 +662,7 @@ export const app = createApp(db);
 
 > `server.ts` は `import { app } from "./app"` のままで動く（`app` は維持）。`db` の re-export 型 `Db` は `./db` から来る。
 
-- [ ] **Step 3: typecheck + 既存 health テストが緑か**
+- [x] **Step 3: typecheck + 既存 health テストが緑か**
 
 Run: `pnpm --filter @picsur/api typecheck`
 Expected: エラー無し。
@@ -670,7 +670,7 @@ Expected: エラー無し。
 Run: `pnpm --filter @picsur/api test app`
 Expected: 既存の health テストが PASS（app.test.ts は db ミドルウェアが入っても `/api/health` は db 不使用なので通る。もし `c.var.db` 未設定で落ちるなら、health は db を使わないので問題ないはず。落ちる場合は報告）。
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add -A
