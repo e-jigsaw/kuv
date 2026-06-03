@@ -1,0 +1,36 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: picsur
+      POSTGRES_USER: picsur
+      POSTGRES_PASSWORD: picsur
+    volumes:
+      - db-data:/var/lib/postgresql/data
+
+  api:
+    build:
+      context: .
+      dockerfile: packages/api/Dockerfile
+    environment:
+      PORT: 3001
+      PICSUR_JWT_SECRET: ${PICSUR_JWT_SECRET}
+      PICSUR_DB_HOST: postgres
+      PICSUR_DB_USER: picsur
+      PICSUR_DB_PASSWORD: picsur
+      PICSUR_DB_DATABASE: picsur
+    depends_on:
+      - postgres
+
+  caddy:
+    image: caddy:2-alpine
+    ports:
+      - "8080:80"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - ./packages/web/dist/client:/srv/web
+    depends_on:
+      - api
+
+volumes:
+  db-data:

@@ -1,0 +1,19 @@
+FROM node:24-alpine AS build
+RUN corepack enable
+WORKDIR /app
+COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
+COPY packages/shared/package.json packages/shared/
+COPY packages/api/package.json packages/api/
+COPY packages/web/package.json packages/web/
+RUN pnpm install --frozen-lockfile --filter @picsur/api...
+COPY tsconfig.base.json ./
+COPY packages/shared packages/shared
+COPY packages/api packages/api
+RUN pnpm --filter @picsur/api build
+
+FROM node:24-alpine AS runtime
+WORKDIR /app
+COPY --from=build /app/packages/api/dist ./dist
+ENV PORT=3001
+EXPOSE 3001
+CMD ["node", "dist/server.js"]
