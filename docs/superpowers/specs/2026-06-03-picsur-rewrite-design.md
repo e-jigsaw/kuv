@@ -179,3 +179,22 @@ Picsur/ (pnpm workspace, Node24/mise)
 3. api: 認証 middleware / auth ルート / 画像パイプライン（upload・配信・変換・削除）/ settings / apikey、characterization テスト
 4. web: Vike SPA 4ページ + 認証ガード + Tailwind UI
 5. デプロイ: Dockerfile / Caddyfile / compose 仕上げ、移行を実 DB に適用
+
+## 実装ノート: 画像パイプラインの分割（2026-06-03 追記、Plan 3b）
+
+Phase 3 のうち認証（middleware / auth ルート）は Plan 3a で完了。画像パイプラインは規模が大きいため **ingest 系と serve 系で 2 分割**する。
+
+- **Plan 3b-1（ingest + 削除）**: `POST /api/image` と `DELETE /api/image/:id`。
+- **Plan 3b-2（配信 + 変換）**: `GET /i/:id` / `GET /i/:id.:ext` とオンデマンド変換 + derivative キャッシュ + MutexFallBack。
+- settings / apikey 発行・失効は別 Plan（3c 想定）。
+
+### Plan 3b-1 の決定事項
+
+- **依存**: `sharp`（native, `onlyBuiltDependencies` に追加）と `file-type`。旧 `webpinfo` の手書き RIFF パーサは**移植しない** — アニメ判定は `sharp().metadata().pages > 1` で代替する。
+- **filetype 判定**: 拡張子でなく `file-type` による実バイト検出 → `isSupportedMime` で検証。非対応は **415**。
+- **master 形式**: 旧実装の QOI 正規化は撤去。**元形式を維持**し sharp で同形式に再エンコードして exif/metadata を除去（静止画 `sharp(buf)` / アニメ `sharp(buf, { animated: true })` でフレーム保持）。
+- **content-hash**: `sha256(アップロード buffer)` = `image.id`。既存 id があれば**再処理せず既存メタを返す（dedupe）**。
+- **original**: `settings.keep_original` が ON のときのみ、元 buffer を元 filetype のまま保存。
+- **削除**: 要認証 + `image.user_id` 一致を確認。FK cascade で `image_file` / `image_derivative` も削除。不一致・不在は 404。
+- **ユニット分割**: `services/filetype.ts`（検出 + アニメ判定）/ `services/image-ingest.ts`（buffer → `{id, master, original?}` の DB 非依存純粋処理）/ `db/image-queries.ts`（insert・dedupe・delete）/ `routes/image.ts`（配線）。
+- **テスト**: PNG / JPG / 静止WebP / アニメWebP / GIF の fixture を使い、testcontainers + `app.request` で characterization（sha256 安定・dedupe / master が valid な元形式 / exif 除去 / アニメ pages 保持 / keep_original / 非対応 415 / 未認証 401 / delete）。
