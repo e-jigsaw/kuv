@@ -1,37 +1,17 @@
 {
-  "private": true,
+  "name": "picsur",
   "version": "0.6.0",
-  "workspaces": [
-    "shared",
-    "backend",
-    "frontend"
-  ],
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.4.1",
+  "engines": {
+    "node": ">=24"
+  },
   "scripts": {
-    "devdb:start": "docker-compose -f ./support/dev.docker-compose.yml up -d",
-    "devdb:stop": "docker-compose -f ./support/dev.docker-compose.yml down",
-    "devdb:restart": "docker-compose -f ./support/dev.docker-compose.yml restart",
-    "devdb:remove": "docker-compose -f ./support/dev.docker-compose.yml down --volumes",
-    "build": "./support/build.sh",
-    "setversion": "./support/setversion.sh",
-    "purge": "rm -rf ./node_modules",
-    "purge-all": "./support/purge-all.sh",
-    "format": "prettier --write ."
-  },
-  "resolutions": {
-    "fastify": ">=4.8.1",
-    "terser": ">=5.14.2",
-    "typeorm": ">=0.3.9",
-    "jsonwebtoken": ">=9.0.0",
-    "typescript": "~4.9.5",
-    "webpack": ">=5.76.0",
-    "ms": "3.0.0-canary.1",
-    "fastify-static": "npm:@fastify/static@*",
-    "fastify-formbody": "npm:@fastify/formbody@*",
-    "minimist": "npm:minimist-lite@*"
-  },
-  "devDependencies": {
-    "prettier": "^2.8.4",
-    "prettier-plugin-sh": "^0.12.8"
-  },
-  "packageManager": "yarn@3.2.2"
+    "build": "pnpm -r build",
+    "test": "pnpm -r test",
+    "typecheck": "pnpm -r typecheck",
+    "dev:api": "pnpm --filter @picsur/api dev",
+    "dev:web": "pnpm --filter @picsur/web dev"
+  }
 }

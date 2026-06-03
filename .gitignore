@@ -11,3 +11,9 @@ yarn-error.log
 .pnp.*
 
 temp
+
+# pnpm / build outputs
+node_modules/
+dist/
+.vite/
+*.tsbuildinfo
