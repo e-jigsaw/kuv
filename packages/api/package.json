@@ -15,8 +15,10 @@
     "@picsur/shared": "workspace:*",
     "bcrypt": "^5.1.1",
     "drizzle-orm": "^0.38.0",
+    "file-type": "^19",
     "hono": "^4.6.0",
-    "pg": "^8.13.0"
+    "pg": "^8.13.0",
+    "sharp": "^0.34"
   },
   "devDependencies": {
     "@testcontainers/postgresql": "^10.13.0",
