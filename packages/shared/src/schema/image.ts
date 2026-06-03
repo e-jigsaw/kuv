@@ -1,4 +1,6 @@
+import { sql } from "drizzle-orm";
 import {
+  check,
   pgTable,
   text,
   timestamp,
@@ -30,7 +32,10 @@ export const imageFile = pgTable(
     filetype: text("filetype").notNull(),
     data: bytea("data").notNull(),
   },
-  (t) => [unique().on(t.imageId, t.variant)],
+  (t) => [
+    unique().on(t.imageId, t.variant),
+    check("image_file_variant_check", sql`${t.variant} in ('master', 'original')`),
+  ],
 );
 
 // オンデマンド形式変換のキャッシュ。key = sha256(対象形式)

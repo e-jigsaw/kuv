@@ -23,4 +23,5 @@ export const selectImageFileSchema = createSelectSchema(imageFile);
 export const insertImageDerivativeSchema = createInsertSchema(imageDerivative);
 export const selectImageDerivativeSchema = createSelectSchema(imageDerivative);
 
+export const insertSettingsSchema = createInsertSchema(settings);
 export const selectSettingsSchema = createSelectSchema(settings);

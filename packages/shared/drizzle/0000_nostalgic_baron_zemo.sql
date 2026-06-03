@@ -31,7 +31,8 @@ CREATE TABLE "image_file" (
 	"variant" text NOT NULL,
 	"filetype" text NOT NULL,
 	"data" "bytea" NOT NULL,
-	CONSTRAINT "image_file_image_id_variant_unique" UNIQUE("image_id","variant")
+	CONSTRAINT "image_file_image_id_variant_unique" UNIQUE("image_id","variant"),
+	CONSTRAINT "image_file_variant_check" CHECK ("image_file"."variant" in ('master', 'original'))
 );
 --> statement-breakpoint
 CREATE TABLE "settings" (

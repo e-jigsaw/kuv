@@ -1,5 +1,5 @@
 {
-  "id": "fc21856d-cf47-416f-b6cb-fcf7e7abc9d1",
+  "id": "3b9deedb-70d3-400e-840f-6e0126cb3ebd",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -268,7 +268,12 @@
         }
       },
       "policies": {},
-      "checkConstraints": {},
+      "checkConstraints": {
+        "image_file_variant_check": {
+          "name": "image_file_variant_check",
+          "value": "\"image_file\".\"variant\" in ('master', 'original')"
+        }
+      },
       "isRLSEnabled": false
     },
     "public.settings": {
