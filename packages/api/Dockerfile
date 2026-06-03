@@ -14,6 +14,7 @@ RUN pnpm --filter @picsur/api build
 FROM node:24-alpine AS runtime
 WORKDIR /app
 COPY --from=build /app/packages/api/dist ./dist
+ENV NODE_ENV=production
 ENV PORT=3001
 EXPOSE 3001
 CMD ["node", "dist/server.js"]
