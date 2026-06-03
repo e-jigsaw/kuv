@@ -491,7 +491,7 @@ git commit -m "feat(api): add user and apikey db queries"
 - Create: `packages/api/src/types.ts`
 - Create: `packages/api/src/middleware/auth.ts`
 
-- [ ] **Step 1: Hono の Variables 型を定義 — `packages/api/src/types.ts`**
+- [x] **Step 1: Hono の Variables 型を定義 — `packages/api/src/types.ts`**
 
 ```ts
 import type { Db } from "./db";
@@ -505,7 +505,7 @@ export interface AppBindings {
 }
 ```
 
-- [ ] **Step 2: 認証ミドルウェアを実装 — `packages/api/src/middleware/auth.ts`**
+- [x] **Step 2: 認証ミドルウェアを実装 — `packages/api/src/middleware/auth.ts`**
 
 ```ts
 import { getCookie } from "hono/cookie";
@@ -552,12 +552,12 @@ export const requireAuth = createMiddleware<AppBindings>(async (c, next) => {
 });
 ```
 
-- [ ] **Step 3: typecheck**
+- [x] **Step 3: typecheck**
 
 Run: `pnpm --filter @picsur/api typecheck`
 Expected: エラー無し。
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add -A
