@@ -1,6 +1,9 @@
 node_modules
 todo.txt
 
+# legacy yarn berry residue
+.yarn/
+
 temp
 
 # pnpm / build outputs

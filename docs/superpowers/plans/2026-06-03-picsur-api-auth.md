@@ -173,7 +173,7 @@ git commit -m "feat(api): add db client (pg + drizzle) and env helpers"
 - Create: `packages/api/src/auth/password.ts`
 - Test: `packages/api/src/auth/password.test.ts`
 
-- [ ] **Step 1: 失敗するテストを書く — `packages/api/src/auth/password.test.ts`**
+- [x] **Step 1: 失敗するテストを書く — `packages/api/src/auth/password.test.ts`**
 
 ```ts
 import { expect, test } from "vitest";
@@ -191,12 +191,12 @@ test("verifyPassword rejects a wrong password", async () => {
 });
 ```
 
-- [ ] **Step 2: テスト失敗を確認**
+- [x] **Step 2: テスト失敗を確認**
 
 Run: `pnpm --filter @picsur/api test password`
 Expected: FAIL（`./password` が無い）
 
-- [ ] **Step 3: 実装 — `packages/api/src/auth/password.ts`**
+- [x] **Step 3: 実装 — `packages/api/src/auth/password.ts`**
 
 ```ts
 import bcrypt from "bcrypt";
@@ -212,12 +212,12 @@ export function verifyPassword(plain: string, hash: string): Promise<boolean> {
 }
 ```
 
-- [ ] **Step 4: テスト緑を確認**
+- [x] **Step 4: テスト緑を確認**
 
 Run: `pnpm --filter @picsur/api test password`
 Expected: PASS（2 test）
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add -A
