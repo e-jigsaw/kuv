@@ -144,6 +144,64 @@ test("deleting a missing image returns 404", async () => {
   expect(res.status).toBe(404);
 });
 
+test("list without auth returns 401", async () => {
+  const res = await app.request("/api/image/list");
+  expect(res.status).toBe(401);
+});
+
+test("list returns own images newest first with links", async () => {
+  // 一意な画像を 2 枚アップロード
+  const buf1 = await sharp({
+    create: { width: 8, height: 8, channels: 3, background: { r: 10, g: 20, b: 30 } },
+  })
+    .png()
+    .toBuffer();
+  const buf2 = await sharp({
+    create: { width: 8, height: 8, channels: 3, background: { r: 40, g: 50, b: 60 } },
+  })
+    .webp()
+    .toBuffer();
+
+  const up1 = await app.request("/api/image", {
+    method: "POST",
+    headers: { Cookie: cookie },
+    body: form(buf1, "first.png", "image/png"),
+  });
+  const { id: id1 } = (await up1.json()) as { id: string };
+  const up2 = await app.request("/api/image", {
+    method: "POST",
+    headers: { Cookie: cookie },
+    body: form(buf2, "second.webp", "image/webp"),
+  });
+  const { id: id2 } = (await up2.json()) as { id: string };
+
+  const res = await app.request("/api/image/list", {
+    headers: { Cookie: cookie },
+  });
+  expect(res.status).toBe(200);
+  const { images } = (await res.json()) as {
+    images: Array<{
+      id: string;
+      file_name: string;
+      created: string;
+      master_filetype: string;
+      links: { view: string; direct: string };
+    }>;
+  };
+
+  // このテストで上げた 2 枚が新しい順に並ぶ（他テストの画像も混ざるので相対順で見る)
+  const i1 = images.findIndex((im) => im.id === id1);
+  const i2 = images.findIndex((im) => im.id === id2);
+  expect(i1).toBeGreaterThanOrEqual(0);
+  expect(i2).toBeGreaterThanOrEqual(0);
+  expect(i2).toBeLessThan(i1); // 後から上げた id2 が先頭側
+
+  const im2 = images[i2]!;
+  expect(im2.file_name).toBe("second.webp");
+  expect(im2.master_filetype).toBe("image/webp");
+  expect(im2.links.direct).toBe(`/i/${id2}.webp`);
+});
+
 test("upload stores original too when keep_original is on", async () => {
   await tdb.db.insert(settings).values({ id: 1, keepOriginal: true });
   try {

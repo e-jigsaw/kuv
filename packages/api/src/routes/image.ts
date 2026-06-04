@@ -6,6 +6,7 @@ import {
   findImageById,
   getSettings,
   insertImage,
+  listImages,
 } from "../db/image-queries";
 import { hashBuffer, processImage } from "../services/image-ingest";
 import type { AppBindings } from "../types";
@@ -16,6 +17,20 @@ function links(id: string, mime: string) {
   const ext = MIME_TO_EXT[mime as SupportedMime] ?? "bin";
   return { view: `/i/${id}`, direct: `/i/${id}.${ext}` };
 }
+
+// 自分の画像一覧（要認証）。created desc 全件
+imageRoutes.get("/list", requireAuth, async (c) => {
+  const rows = await listImages(c.var.db, c.var.user!.id);
+  return c.json({
+    images: rows.map((r) => ({
+      id: r.id,
+      file_name: r.fileName,
+      created: r.created,
+      master_filetype: r.masterFiletype,
+      links: links(r.id, r.masterFiletype),
+    })),
+  });
+});
 
 // アップロード（要認証）。multipart の "file" フィールドを受け取る。
 // 自家用・単一ユーザー前提のため bodyLimit は意図的に未設定
