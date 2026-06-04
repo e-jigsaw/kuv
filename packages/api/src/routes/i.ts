@@ -1,4 +1,4 @@
-import type { SupportedMime } from "@picsur/shared";
+import { EXT_TO_MIME, type SupportedMime } from "@picsur/shared";
 import type { Context } from "hono";
 import { Hono } from "hono";
 import {
@@ -12,15 +12,6 @@ import { requireAuth } from "../middleware/auth";
 import type { AppBindings } from "../types";
 
 export const iRoutes = new Hono<AppBindings>();
-
-// 配信用拡張子 → mime
-const EXT_TO_MIME: Record<string, SupportedMime> = {
-  png: "image/png",
-  jpg: "image/jpeg",
-  jpeg: "image/jpeg",
-  webp: "image/webp",
-  gif: "image/gif",
-};
 
 function serve(c: Context<AppBindings>, filetype: string, data: Buffer) {
   c.header("Content-Type", filetype);

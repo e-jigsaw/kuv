@@ -1,3 +1,4 @@
+import { MIME_TO_EXT, type SupportedMime } from "@picsur/shared";
 import { Hono } from "hono";
 import { requireAuth } from "../middleware/auth";
 import {
@@ -11,16 +12,8 @@ import type { AppBindings } from "../types";
 
 export const imageRoutes = new Hono<AppBindings>();
 
-// mime → 配信用拡張子
-const EXT: Record<string, string> = {
-  "image/png": "png",
-  "image/jpeg": "jpg",
-  "image/webp": "webp",
-  "image/gif": "gif",
-};
-
 function links(id: string, mime: string) {
-  const ext = EXT[mime] ?? "bin";
+  const ext = MIME_TO_EXT[mime as SupportedMime] ?? "bin";
   return { view: `/i/${id}`, direct: `/i/${id}.${ext}` };
 }
 
