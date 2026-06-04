@@ -4,7 +4,10 @@ import { seedAdmin, startTestDb, type TestDb } from "../test/db";
 import {
   deleteImage,
   findImageById,
+  getDerivative,
+  getImageFile,
   getSettings,
+  insertDerivative,
   insertImage,
 } from "./image-queries";
 
@@ -33,7 +36,12 @@ test("insertImage then findImageById round-trips metadata", async () => {
     master,
   );
   const row = await findImageById(t.db, "img-a");
-  expect(row).toEqual({ id: "img-a", userId: adminId, fileName: "a.png" });
+  expect(row).toEqual({
+    id: "img-a",
+    userId: adminId,
+    fileName: "a.png",
+    masterFiletype: "image/png",
+  });
 });
 
 test("insertImage with original stores both image_file rows", async () => {
@@ -81,4 +89,61 @@ test("deleteImage removes only the owner's image and cascades files", async () =
     ["img-c"],
   );
   expect(rows[0].n).toBe(0);
+});
+
+test("getImageFile returns the master bytes and filetype", async () => {
+  await insertImage(
+    t.db,
+    { id: "img-f", userId: adminId, fileName: "f.png" },
+    { filetype: "image/png", data: Buffer.from([7, 8, 9]) },
+  );
+  const f = await getImageFile(t.db, "img-f", "master");
+  expect(f).not.toBe(null);
+  expect(f!.filetype).toBe("image/png");
+  expect(Buffer.compare(Buffer.from(f!.data), Buffer.from([7, 8, 9]))).toBe(0);
+});
+
+test("getImageFile returns null for a missing variant", async () => {
+  expect(await getImageFile(t.db, "img-f", "original")).toBe(null);
+});
+
+test("insertDerivative then getDerivative round-trips and bumps last_read", async () => {
+  await insertDerivative(t.db, "img-f", "key-1", "image/webp", Buffer.from([1]));
+
+  const before = await t.pool.query(
+    "select last_read from image_derivative where image_id = $1 and key = $2",
+    ["img-f", "key-1"],
+  );
+
+  // last_read の差が出るよう少し待つ
+  await new Promise((r) => setTimeout(r, 20));
+
+  const d = await getDerivative(t.db, "img-f", "key-1");
+  expect(d).not.toBe(null);
+  expect(d!.filetype).toBe("image/webp");
+  expect(Buffer.compare(Buffer.from(d!.data), Buffer.from([1]))).toBe(0);
+
+  const after = await t.pool.query(
+    "select last_read from image_derivative where image_id = $1 and key = $2",
+    ["img-f", "key-1"],
+  );
+  expect(new Date(after.rows[0].last_read).getTime()).toBeGreaterThan(
+    new Date(before.rows[0].last_read).getTime(),
+  );
+});
+
+test("getDerivative returns null on miss", async () => {
+  expect(await getDerivative(t.db, "img-f", "no-such-key")).toBe(null);
+});
+
+test("insertDerivative ignores a duplicate (image_id, key)", async () => {
+  await insertDerivative(t.db, "img-f", "key-1", "image/webp", Buffer.from([9, 9]));
+  const { rows } = await t.pool.query(
+    "select count(*)::int as n from image_derivative where image_id = $1 and key = $2",
+    ["img-f", "key-1"],
+  );
+  expect(rows[0].n).toBe(1);
+  // 先勝ち: data は最初の [1] のまま
+  const d = await getDerivative(t.db, "img-f", "key-1");
+  expect(Buffer.compare(Buffer.from(d!.data), Buffer.from([1]))).toBe(0);
 });
