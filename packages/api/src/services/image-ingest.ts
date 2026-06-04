@@ -15,7 +15,7 @@ export interface IngestResult {
 }
 
 // mime → sharp の出力フォーマット
-const OUTPUT_FORMAT: Record<SupportedMime, "png" | "jpeg" | "webp" | "gif"> = {
+export const OUTPUT_FORMAT: Record<SupportedMime, "png" | "jpeg" | "webp" | "gif"> = {
   "image/png": "png",
   "image/jpeg": "jpeg",
   "image/webp": "webp",

@@ -1,0 +1,22 @@
+import { createHash } from "node:crypto";
+import type { SupportedMime } from "@picsur/shared";
+import sharp from "sharp";
+import { OUTPUT_FORMAT } from "./image-ingest";
+
+// derivative の cache key（設計: key = sha256(対象mime)）
+export function derivativeKey(targetMime: SupportedMime): string {
+  return createHash("sha256").update(targetMime).digest("hex");
+}
+
+// master buffer を対象形式に変換する（形式変換のみ、編集無し）。
+// アニメ対応形式（webp/gif）へは {animated:true} でフレーム保持、png/jpeg へは 1 フレーム目に潰れる。
+export async function convertImage(
+  buf: Buffer,
+  targetMime: SupportedMime,
+): Promise<Buffer> {
+  const animatedOut =
+    targetMime === "image/webp" || targetMime === "image/gif";
+  return sharp(buf, { animated: animatedOut })
+    .toFormat(OUTPUT_FORMAT[targetMime])
+    .toBuffer();
+}
