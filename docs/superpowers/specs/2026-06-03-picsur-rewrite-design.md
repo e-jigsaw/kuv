@@ -198,3 +198,13 @@ Phase 3 のうち認証（middleware / auth ルート）は Plan 3a で完了。
 - **削除**: 要認証 + `image.user_id` 一致を確認。FK cascade で `image_file` / `image_derivative` も削除。不一致・不在は 404。
 - **ユニット分割**: `services/filetype.ts`（検出 + アニメ判定）/ `services/image-ingest.ts`（buffer → `{id, master, original?}` の DB 非依存純粋処理）/ `db/image-queries.ts`（insert・dedupe・delete）/ `routes/image.ts`（配線）。
 - **テスト**: PNG / JPG / 静止WebP / アニメWebP / GIF の fixture を使い、testcontainers + `app.request` で characterization（sha256 安定・dedupe / master が valid な元形式 / exif 除去 / アニメ pages 保持 / keep_original / 非対応 415 / 未認証 401 / delete）。
+
+### Plan 3b-2 の決定事項（2026-06-04 追記）
+
+- **ルート**: `GET /i/:idWithExt` 1 本で受け、`.` 以降を ext として自前 split（Hono の regex ルートより単純）。ext 無し or ext の mime == master filetype → master をそのまま返す。不明 ext・不在 id は 404。
+- **ext → mime**: `png / jpg / jpeg / webp / gif` のみ。
+- **derivative**: `key = sha256(対象mime)`。hit で `last_read` 更新、miss は `MutexFallBack`（key = `imageId:対象mime`、旧 `archive/backend/src/util/mutex-fallback.ts` をほぼそのまま `src/util/` に移植）内で sharp 変換 → upsert。
+- **変換セマンティクス**: 形式変換のみ（リサイズ等の編集は撤去済み）。アニメ → webp/gif は `{animated:true}` でフレーム保持、アニメ → png/jpg は sharp の自然挙動で 1 フレーム目。
+- **レスポンスヘッダ**: `Content-Type` / `Cache-Control: private, max-age=31536000, immutable`（id が content-hash なので不変、認証必須なので private）/ `Cross-Origin-Resource-Policy: cross-origin`。
+- **YAGNI で移植しないもの**: 旧 SharpWrapper（worker + time/mem limit）は in-process sharp で代替。derivative の eviction ジョブは作らない（`last_read` は記録のみ）。
+- **3b-1 引き継ぎの解消を含む**: `findImageById` を master `filetype` 付きに拡張し POST dedupe 分岐の links を厳密化 / dedupe の owner 未チェックは単一 admin 前提とコメント明記 / keep_original ON の統合テストを 1 本追加。
