@@ -32,3 +32,28 @@ test("flattens an animated gif to a still png (first frame)", async () => {
   // 静止画になっている（pages 無し or 1）
   expect(meta.pages ?? 1).toBe(1);
 });
+
+test("flattens transparency onto white when converting to jpeg", async () => {
+  // 半透明の赤 8x8 png
+  const buf = await sharp({
+    create: { width: 8, height: 8, channels: 4, background: { r: 255, g: 0, b: 0, alpha: 0 } },
+  })
+    .png()
+    .toBuffer();
+  const out = await convertImage(buf, "image/jpeg");
+  const meta = await sharp(out).metadata();
+  expect(meta.format).toBe("jpeg");
+  // 完全透過の領域は白く flatten される（黒 0,0,0 ではなく 255 近傍）
+  const { data } = await sharp(out).raw().toBuffer({ resolveWithObject: true });
+  expect(data[0]).toBeGreaterThan(200); // R
+  expect(data[1]).toBeGreaterThan(200); // G
+  expect(data[2]).toBeGreaterThan(200); // B
+});
+
+test("flattens an animated gif to a still jpeg (first frame)", async () => {
+  const buf = await fixture("anim.gif");
+  const out = await convertImage(buf, "image/jpeg");
+  const meta = await sharp(out).metadata();
+  expect(meta.format).toBe("jpeg");
+  expect(meta.pages ?? 1).toBe(1);
+});

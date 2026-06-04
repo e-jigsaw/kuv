@@ -16,7 +16,10 @@ export async function convertImage(
 ): Promise<Buffer> {
   const animatedOut =
     targetMime === "image/webp" || targetMime === "image/gif";
-  return sharp(buf, { animated: animatedOut })
-    .toFormat(OUTPUT_FORMAT[targetMime])
-    .toBuffer();
+  let pipeline = sharp(buf, { animated: animatedOut });
+  // jpeg はアルファ非対応。sharp デフォルトの黒合成ではなく白背景に flatten する
+  if (targetMime === "image/jpeg") {
+    pipeline = pipeline.flatten({ background: { r: 255, g: 255, b: 255 } });
+  }
+  return pipeline.toFormat(OUTPUT_FORMAT[targetMime]).toBuffer();
 }
