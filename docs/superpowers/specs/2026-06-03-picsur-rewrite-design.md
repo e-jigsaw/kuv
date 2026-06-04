@@ -208,3 +208,14 @@ Phase 3 のうち認証（middleware / auth ルート）は Plan 3a で完了。
 - **レスポンスヘッダ**: `Content-Type` / `Cache-Control: private, max-age=31536000, immutable`（id が content-hash なので不変、認証必須なので private）/ `Cross-Origin-Resource-Policy: cross-origin`。
 - **YAGNI で移植しないもの**: 旧 SharpWrapper（worker + time/mem limit）は in-process sharp で代替。derivative の eviction ジョブは作らない（`last_read` は記録のみ）。
 - **3b-1 引き継ぎの解消を含む**: `findImageById` を master `filetype` 付きに拡張し POST dedupe 分岐の links を厳密化 / dedupe の owner 未チェックは単一 admin 前提とコメント明記 / keep_original ON の統合テストを 1 本追加。
+
+### Plan 3c の決定事項（2026-06-04 追記）
+
+api の残りルート群（これで Phase 3 完結）。全ルート要認証。
+
+- **`GET /api/image/list`**: 自分の画像一覧（id / file_name / created / master_filetype + links）。**created desc 全件** — 自家用で高々数千行・メタのみなのでページングは YAGNI。master 限定 innerJoin パターンを流用。
+- **`GET/PUT /api/settings`**: `{ keep_original }` の読み書き。PUT は id=1 への upsert（onConflictDoUpdate）。
+- **apikey**: `GET /api/apikey`（一覧、**key 平文を再表示** — 旧実装が平文保存方式で既存キーも引き継ぐため。ShareX 再設定に便利、認証必須なので許容）/ `POST /api/apikey`（発行。key = **32 文字ランダム英数字**で旧形式互換、`generateRandomString` を旧 shared から `src/util/random.ts` に移植。name 省略時は旧実装と同じ `YYYY-MM-DD_<n>`）/ `DELETE /api/apikey/:id`（owner-scoped、不在 404）。hash 化はしない（旧方式踏襲）。
+- **`POST /api/auth/password`**: `{ current, new }` — 現パスワード bcrypt 照合（不一致 401）→ 新 hash で update。
+- **EXT マップの重複解消**: `routes/image.ts` の `EXT`（mime→ext）と `routes/i.ts` の `EXT_TO_MIME`（ext→mime）を shared `constants.ts` に `MIME_TO_EXT` / `EXT_TO_MIME` として統合。
+- **テスト**: testcontainers + `app.request`。一覧（順序・links・空）/ settings（デフォルト→PUT→GET、upsert 冪等）/ apikey（発行形式・一覧・**発行 key で /api/auth/me が通る**・失効後 401）/ パスワード変更（誤 current 401、変更後の新旧 login）。各ルートの未認証 401。
