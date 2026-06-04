@@ -32,7 +32,7 @@ interface ApikeyJson {
   name: string;
   key: string;
   created: string;
-  lastUsed: string | null;
+  last_used: string | null;
 }
 
 test("apikey routes without auth return 401", async () => {
@@ -56,6 +56,7 @@ test("create issues a 32-char alphanumeric key with default dated name", async (
   expect(apikey.key).toMatch(/^[A-Za-z0-9]{32}$/);
   // 旧実装と同じ YYYY-MM-DD_<n> デフォルト名
   expect(apikey.name).toMatch(/^\d{4}-\d{2}-\d{2}_\d+$/);
+  expect(apikey.last_used).toBe(null);
 });
 
 test("create accepts a custom name and the key authenticates via /api/auth/me", async () => {
