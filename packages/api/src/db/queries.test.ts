@@ -58,4 +58,6 @@ test("updatePassword replaces the stored hash", async () => {
   await updatePassword(t.db, adminId, "new-hash");
   const u = await getUserByUsername(t.db, "admin");
   expect(u!.password).toBe("new-hash");
+  // Restore original hash to avoid test order dependencies
+  await updatePassword(t.db, adminId, "hash-value");
 });
