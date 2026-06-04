@@ -51,3 +51,15 @@ export async function resolveApikey(
 
   return { id: row.id, username: row.username };
 }
+
+// パスワード（bcrypt hash）を更新する
+export async function updatePassword(
+  db: Db,
+  userId: string,
+  passwordHash: string,
+): Promise<void> {
+  await db
+    .update(user)
+    .set({ password: passwordHash })
+    .where(eq(user.id, userId));
+}

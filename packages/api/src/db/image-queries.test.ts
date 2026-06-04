@@ -9,6 +9,8 @@ import {
   getSettings,
   insertDerivative,
   insertImage,
+  listImages,
+  updateSettings,
 } from "./image-queries";
 
 let t: TestDb;
@@ -146,4 +148,45 @@ test("insertDerivative ignores a duplicate (image_id, key)", async () => {
   // 先勝ち: data は最初の [1] のまま
   const d = await getDerivative(t.db, "img-f", "key-1");
   expect(Buffer.compare(Buffer.from(d!.data), Buffer.from([1]))).toBe(0);
+});
+
+test("listImages returns own images newest first with master filetype", async () => {
+  await insertImage(
+    t.db,
+    { id: "list-1", userId: adminId, fileName: "one.png" },
+    { filetype: "image/png", data: Buffer.from([1]) },
+  );
+  // created の差を作る
+  await new Promise((r) => setTimeout(r, 20));
+  await insertImage(
+    t.db,
+    { id: "list-2", userId: adminId, fileName: "two.webp" },
+    { filetype: "image/webp", data: Buffer.from([2]) },
+  );
+
+  const rows = await listImages(t.db, adminId);
+  const listed = rows.filter((r) => r.id.startsWith("list-"));
+  expect(listed.map((r) => r.id)).toEqual(["list-2", "list-1"]);
+  expect(listed[0]).toMatchObject({
+    id: "list-2",
+    fileName: "two.webp",
+    masterFiletype: "image/webp",
+  });
+  expect(listed[0]!.created).toBeInstanceOf(Date);
+});
+
+test("listImages returns empty array for a user with no images", async () => {
+  const rows = await listImages(t.db, "00000000-0000-0000-0000-000000000000");
+  expect(rows).toEqual([]);
+});
+
+test("updateSettings upserts the single settings row", async () => {
+  // 行が無い状態から PUT 相当
+  await updateSettings(t.db, { keepOriginal: true });
+  expect(await getSettings(t.db)).toEqual({ keepOriginal: true });
+  // 再度 upsert（冪等）
+  await updateSettings(t.db, { keepOriginal: false });
+  expect(await getSettings(t.db)).toEqual({ keepOriginal: false });
+  // 後始末（他テストへの影響防止）
+  await t.db.delete(settings);
 });

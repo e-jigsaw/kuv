@@ -1,6 +1,6 @@
 import { image, imageDerivative, imageFile, settings } from "@picsur/shared";
 import type { ImageVariant } from "@picsur/shared";
-import { and, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import type { Db } from "../db";
 import type { IngestFile } from "../services/image-ingest";
 
@@ -137,6 +137,45 @@ export async function getDerivative(
     .where(eq(imageDerivative.id, row.id));
 
   return { filetype: row.filetype, data: row.data };
+}
+
+export interface ImageListEntry {
+  id: string;
+  fileName: string;
+  created: Date;
+  masterFiletype: string;
+}
+
+// 自分の画像一覧（created desc 全件 — 自家用なのでページングは YAGNI）
+export async function listImages(
+  db: Db,
+  userId: string,
+): Promise<ImageListEntry[]> {
+  return db
+    .select({
+      id: image.id,
+      fileName: image.fileName,
+      created: image.created,
+      masterFiletype: imageFile.filetype,
+    })
+    .from(image)
+    .innerJoin(
+      imageFile,
+      and(eq(imageFile.imageId, image.id), eq(imageFile.variant, "master")),
+    )
+    .where(eq(image.userId, userId))
+    .orderBy(desc(image.created));
+}
+
+// settings 単一行（id=1）を upsert
+export async function updateSettings(db: Db, s: Settings): Promise<void> {
+  await db
+    .insert(settings)
+    .values({ id: 1, keepOriginal: s.keepOriginal })
+    .onConflictDoUpdate({
+      target: settings.id,
+      set: { keepOriginal: s.keepOriginal },
+    });
 }
 
 // derivative を保存。並行生成で unique(image_id, key) に衝突したら先勝ちで無視。

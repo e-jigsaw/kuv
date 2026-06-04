@@ -1,7 +1,7 @@
 import { apikey } from "@picsur/shared";
 import { afterAll, beforeAll, expect, test } from "vitest";
 import { seedAdmin, startTestDb, type TestDb } from "../test/db";
-import { getUserById, getUserByUsername, resolveApikey } from "./queries";
+import { getUserById, getUserByUsername, resolveApikey, updatePassword } from "./queries";
 
 let t: TestDb;
 let adminId: string;
@@ -52,4 +52,10 @@ test("resolveApikey resolves the owning user and bumps last_used", async () => {
 
 test("resolveApikey returns null for an unknown key", async () => {
   expect(await resolveApikey(t.db, "no-such-key")).toBe(null);
+});
+
+test("updatePassword replaces the stored hash", async () => {
+  await updatePassword(t.db, adminId, "new-hash");
+  const u = await getUserByUsername(t.db, "admin");
+  expect(u!.password).toBe("new-hash");
 });
