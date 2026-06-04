@@ -28,7 +28,7 @@ function serve(c: Context<AppBindings>, filetype: string, data: Buffer) {
   c.header("Cache-Control", "private, max-age=31536000, immutable");
   // 埋め込み用（設計どおり）
   c.header("Cross-Origin-Resource-Policy", "cross-origin");
-  return c.body(new Uint8Array(data));
+  return c.body(new Uint8Array(data.buffer as ArrayBuffer, data.byteOffset, data.byteLength));
 }
 
 // GET /i/:id または /i/:id.:ext（要認証 — 画像も完全プライベート）
@@ -37,6 +37,7 @@ iRoutes.get("/:idWithExt", requireAuth, async (c) => {
   const dot = idWithExt.indexOf(".");
   const id = dot === -1 ? idWithExt : idWithExt.slice(0, dot);
   const ext = dot === -1 ? null : idWithExt.slice(dot + 1).toLowerCase();
+  if (!id) return c.json({ error: "not found" }, 404);
 
   const targetMime = ext === null ? null : EXT_TO_MIME[ext];
   if (ext !== null && targetMime === undefined) {
@@ -62,5 +63,5 @@ iRoutes.get("/:idWithExt", requireAuth, async (c) => {
       return { filetype: targetMime, data };
     },
   );
-  return serve(c, derivative.filetype, Buffer.from(derivative.data));
+  return serve(c, derivative.filetype, derivative.data);
 });

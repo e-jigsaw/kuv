@@ -155,3 +155,19 @@ test("unknown extension returns 404", async () => {
   const res = await app.request(`/i/${id}.svg`, { headers: { Cookie: cookie } });
   expect(res.status).toBe(404);
 });
+
+test("empty id (/i/.png) returns 404", async () => {
+  const res = await app.request("/i/.png", { headers: { Cookie: cookie } });
+  expect(res.status).toBe(404);
+});
+
+test("empty extension (/i/<id>.) returns 404", async () => {
+  const id = await upload(await fixture("red.png"), "red.png", "image/png");
+  const res = await app.request(`/i/${id}.`, { headers: { Cookie: cookie } });
+  expect(res.status).toBe(404);
+});
+
+test("multiple dots resolve to an unknown extension and return 404", async () => {
+  const res = await app.request("/i/a.b.c", { headers: { Cookie: cookie } });
+  expect(res.status).toBe(404);
+});
