@@ -4,6 +4,7 @@ import { authMiddleware } from "./middleware/auth";
 import { authRoutes } from "./routes/auth";
 import { imageRoutes } from "./routes/image";
 import { iRoutes } from "./routes/i";
+import { settingsRoutes } from "./routes/settings";
 import type { AppBindings } from "./types";
 
 export function createApp(database: Db): Hono<AppBindings> {
@@ -20,6 +21,7 @@ export function createApp(database: Db): Hono<AppBindings> {
   app.route("/api/auth", authRoutes);
   app.route("/api/image", imageRoutes);
   app.route("/i", iRoutes);
+  app.route("/api/settings", settingsRoutes);
 
   app.onError((err, c) => {
     console.error(err);
