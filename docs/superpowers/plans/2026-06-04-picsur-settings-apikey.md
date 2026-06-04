@@ -36,7 +36,7 @@
 - Modify: `packages/api/src/routes/image.ts`
 - Modify: `packages/api/src/routes/i.ts`
 
-- [ ] **Step 1: 失敗するテストを書く — `packages/shared/src/constants.test.ts` に追記**
+- [x] **Step 1: 失敗するテストを書く — `packages/shared/src/constants.test.ts` に追記**
 
 既存テストの末尾に追加:
 
@@ -71,12 +71,12 @@ test("MIME_TO_EXT and EXT_TO_MIME round-trip for every supported mime", () => {
 
 > 既存の import 文と重複する場合は 1 つの import にまとめること（`SUPPORTED_MIMES` 等は既に import されているかもしれない）。
 
-- [ ] **Step 2: テスト失敗を確認**
+- [x] **Step 2: テスト失敗を確認**
 
 Run: `pnpm --filter @picsur/shared test constants`
 Expected: FAIL（`MIME_TO_EXT` / `EXT_TO_MIME` が export されていない）
 
-- [ ] **Step 3: 実装 — `packages/shared/src/constants.ts` に追記**
+- [x] **Step 3: 実装 — `packages/shared/src/constants.ts` に追記**
 
 ```ts
 // 配信用拡張子マップ（routes/image の links と routes/i の ext 解決が共用）
@@ -96,12 +96,12 @@ export const EXT_TO_MIME: Record<string, SupportedMime> = {
 };
 ```
 
-- [ ] **Step 4: shared テスト緑を確認**
+- [x] **Step 4: shared テスト緑を確認**
 
 Run: `pnpm --filter @picsur/shared test constants`
 Expected: PASS
 
-- [ ] **Step 5: routes/image.ts をローカル `EXT` から移行**
+- [x] **Step 5: routes/image.ts をローカル `EXT` から移行**
 
 `packages/api/src/routes/image.ts` のローカル定義:
 
@@ -130,7 +130,7 @@ function links(id: string, mime: string) {
 }
 ```
 
-- [ ] **Step 6: routes/i.ts をローカル `EXT_TO_MIME` から移行**
+- [x] **Step 6: routes/i.ts をローカル `EXT_TO_MIME` から移行**
 
 `packages/api/src/routes/i.ts` のローカル定義:
 
@@ -153,12 +153,12 @@ import { EXT_TO_MIME, type SupportedMime } from "@picsur/shared";
 
 （`SupportedMime` が未使用になったら import から外す — `targetMime` の型注釈等で使っていれば残す）
 
-- [ ] **Step 7: 回帰確認**
+- [x] **Step 7: 回帰確認**
 
 Run: `pnpm --filter @picsur/api test routes && pnpm -r typecheck`
 Expected: routes/image 8 + routes/i 12 テスト PASS、typecheck 全緑。
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add packages/shared/src/constants.ts packages/shared/src/constants.test.ts packages/api/src/routes/image.ts packages/api/src/routes/i.ts
@@ -175,7 +175,7 @@ apikey の key 生成用。旧 `archive/shared/src/util/random.ts` の移植（3
 - Create: `packages/api/src/util/random.ts`
 - Test: `packages/api/src/util/random.test.ts`
 
-- [ ] **Step 1: 失敗するテストを書く — `packages/api/src/util/random.test.ts`**
+- [x] **Step 1: 失敗するテストを書く — `packages/api/src/util/random.test.ts`**
 
 ```ts
 import { expect, test } from "vitest";
@@ -195,12 +195,12 @@ test("two generations differ", () => {
 });
 ```
 
-- [ ] **Step 2: テスト失敗を確認**
+- [x] **Step 2: テスト失敗を確認**
 
 Run: `pnpm --filter @picsur/api test util/random`
 Expected: FAIL（`./random` が無い）
 
-- [ ] **Step 3: 実装 — `packages/api/src/util/random.ts`**
+- [x] **Step 3: 実装 — `packages/api/src/util/random.ts`**
 
 旧実装の `crypto.randomInt(0, len - 1)` は最後の文字が出ないオフバイワンバグなので、移植時に `crypto.randomInt(0, len)`（上限排他）へ修正する:
 
@@ -221,12 +221,12 @@ export function generateRandomString(length: number): string {
 }
 ```
 
-- [ ] **Step 4: テスト緑を確認**
+- [x] **Step 4: テスト緑を確認**
 
 Run: `pnpm --filter @picsur/api test util/random`
 Expected: PASS（3 test）
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/api/src/util/random.ts packages/api/src/util/random.test.ts
@@ -247,7 +247,7 @@ git commit -m "feat(api): add alphanumeric random string util for apikeys"
 - Modify: `packages/api/src/db/queries.ts`
 - Modify: `packages/api/src/db/queries.test.ts`
 
-- [ ] **Step 1: 失敗するテストを書く (a) — `packages/api/src/db/image-queries.test.ts` に追記**
+- [x] **Step 1: 失敗するテストを書く (a) — `packages/api/src/db/image-queries.test.ts` に追記**
 
 import に `listImages` / `updateSettings` を追加し、ファイル末尾に:
 
@@ -294,7 +294,7 @@ test("updateSettings upserts the single settings row", async () => {
 });
 ```
 
-- [ ] **Step 2: 失敗するテストを書く (b) — `packages/api/src/db/apikey-queries.test.ts`（新規）**
+- [x] **Step 2: 失敗するテストを書く (b) — `packages/api/src/db/apikey-queries.test.ts`（新規）**
 
 ```ts
 import { afterAll, beforeAll, expect, test } from "vitest";
@@ -340,7 +340,7 @@ test("deleteApikey removes only the owner's key", async () => {
 });
 ```
 
-- [ ] **Step 3: 失敗するテストを書く (c) — `packages/api/src/db/queries.test.ts` に追記**
+- [x] **Step 3: 失敗するテストを書く (c) — `packages/api/src/db/queries.test.ts` に追記**
 
 import に `updatePassword` を追加し、ファイル末尾に:
 
@@ -354,12 +354,12 @@ test("updatePassword replaces the stored hash", async () => {
 
 > 注: このテストは同ファイルの既存テストが使う "admin" の password を書き換える。既存テストは password の値に依存していない（"hash-value" の round-trip テストは先に実行される）ため末尾追加なら安全だが、既存テストの期待値と衝突しないことを確認すること。
 
-- [ ] **Step 4: テスト失敗を確認**
+- [x] **Step 4: テスト失敗を確認**
 
 Run: `pnpm --filter @picsur/api test db/`
 Expected: FAIL（`listImages` / `updateSettings` / apikey-queries モジュール / `updatePassword` が無い）
 
-- [ ] **Step 5: 実装 (a) — `packages/api/src/db/image-queries.ts` に追記**
+- [x] **Step 5: 実装 (a) — `packages/api/src/db/image-queries.ts` に追記**
 
 import の `and, eq` に `desc` を追加（`import { and, desc, eq } from "drizzle-orm";`）し、ファイル末尾に:
 
@@ -404,7 +404,7 @@ export async function updateSettings(db: Db, s: Settings): Promise<void> {
 }
 ```
 
-- [ ] **Step 6: 実装 (b) — `packages/api/src/db/apikey-queries.ts`（新規）**
+- [x] **Step 6: 実装 (b) — `packages/api/src/db/apikey-queries.ts`（新規）**
 
 ```ts
 import { apikey } from "@picsur/shared";
@@ -467,7 +467,7 @@ export async function deleteApikey(
 }
 ```
 
-- [ ] **Step 7: 実装 (c) — `packages/api/src/db/queries.ts` に追記**
+- [x] **Step 7: 実装 (c) — `packages/api/src/db/queries.ts` に追記**
 
 ```ts
 // パスワード（bcrypt hash）を更新する
@@ -483,12 +483,12 @@ export async function updatePassword(
 }
 ```
 
-- [ ] **Step 8: テスト緑を確認**
+- [x] **Step 8: テスト緑を確認**
 
 Run: `pnpm --filter @picsur/api test db/`
 Expected: PASS（image-queries 14 / apikey-queries 3 / queries 7）
 
-- [ ] **Step 9: typecheck + Commit**
+- [x] **Step 9: typecheck + Commit**
 
 Run: `pnpm --filter @picsur/api typecheck`
 Expected: エラー無し。
@@ -506,7 +506,7 @@ git commit -m "feat(api): add list/settings/apikey/password db queries"
 - Modify: `packages/api/src/routes/image.ts`
 - Modify: `packages/api/src/routes/image.test.ts`
 
-- [ ] **Step 1: 失敗するテストを書く — `packages/api/src/routes/image.test.ts` 末尾に追加**
+- [x] **Step 1: 失敗するテストを書く — `packages/api/src/routes/image.test.ts` 末尾に追加**
 
 ```ts
 test("list without auth returns 401", async () => {
@@ -568,12 +568,12 @@ test("list returns own images newest first with links", async () => {
 });
 ```
 
-- [ ] **Step 2: テスト失敗を確認**
+- [x] **Step 2: テスト失敗を確認**
 
 Run: `pnpm --filter @picsur/api test routes/image`
 Expected: FAIL（`/api/image/list` が無い — POST `/` のみなので GET は 404）
 
-- [ ] **Step 3: 実装 — `packages/api/src/routes/image.ts`**
+- [x] **Step 3: 実装 — `packages/api/src/routes/image.ts`**
 
 import に `listImages` を追加:
 
@@ -605,12 +605,12 @@ imageRoutes.get("/list", requireAuth, async (c) => {
 });
 ```
 
-- [ ] **Step 4: テスト緑を確認**
+- [x] **Step 4: テスト緑を確認**
 
 Run: `pnpm --filter @picsur/api test routes/image`
 Expected: PASS（10 test）
 
-- [ ] **Step 5: typecheck + Commit**
+- [x] **Step 5: typecheck + Commit**
 
 Run: `pnpm --filter @picsur/api typecheck`
 
@@ -628,7 +628,7 @@ git commit -m "feat(api): add GET /api/image/list"
 - Test: `packages/api/src/routes/settings.test.ts`
 - Modify: `packages/api/src/app.ts`
 
-- [ ] **Step 1: 失敗するテストを書く — `packages/api/src/routes/settings.test.ts`（新規）**
+- [x] **Step 1: 失敗するテストを書く — `packages/api/src/routes/settings.test.ts`（新規）**
 
 ```ts
 import type { Hono } from "hono";
@@ -710,12 +710,12 @@ test("put settings with non-boolean returns 400", async () => {
 });
 ```
 
-- [ ] **Step 2: テスト失敗を確認**
+- [x] **Step 2: テスト失敗を確認**
 
 Run: `pnpm --filter @picsur/api test routes/settings`
 Expected: FAIL（ルートが無く 404、または app.ts に mount が無い）
 
-- [ ] **Step 3: 実装 — `packages/api/src/routes/settings.ts`（新規）**
+- [x] **Step 3: 実装 — `packages/api/src/routes/settings.ts`（新規）**
 
 ```ts
 import { Hono } from "hono";
@@ -742,7 +742,7 @@ settingsRoutes.put("/", requireAuth, async (c) => {
 });
 ```
 
-- [ ] **Step 4: app.ts に mount**
+- [x] **Step 4: app.ts に mount**
 
 import 追加:
 
@@ -756,12 +756,12 @@ import { settingsRoutes } from "./routes/settings";
   app.route("/api/settings", settingsRoutes);
 ```
 
-- [ ] **Step 5: テスト緑を確認 + typecheck**
+- [x] **Step 5: テスト緑を確認 + typecheck**
 
 Run: `pnpm --filter @picsur/api test routes/settings && pnpm --filter @picsur/api typecheck`
 Expected: PASS（4 test）、typecheck エラー無し。
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add packages/api/src/routes/settings.ts packages/api/src/routes/settings.test.ts packages/api/src/app.ts
@@ -777,7 +777,7 @@ git commit -m "feat(api): add GET/PUT /api/settings (keep_original)"
 - Test: `packages/api/src/routes/apikey.test.ts`
 - Modify: `packages/api/src/app.ts`
 
-- [ ] **Step 1: 失敗するテストを書く — `packages/api/src/routes/apikey.test.ts`（新規）**
+- [x] **Step 1: 失敗するテストを書く — `packages/api/src/routes/apikey.test.ts`（新規）**
 
 ```ts
 import type { Hono } from "hono";
@@ -908,12 +908,12 @@ test("delete with a missing uuid returns 404", async () => {
 });
 ```
 
-- [ ] **Step 2: テスト失敗を確認**
+- [x] **Step 2: テスト失敗を確認**
 
 Run: `pnpm --filter @picsur/api test routes/apikey`
 Expected: FAIL（ルートが無い）
 
-- [ ] **Step 3: 実装 — `packages/api/src/routes/apikey.ts`（新規）**
+- [x] **Step 3: 実装 — `packages/api/src/routes/apikey.ts`（新規）**
 
 ```ts
 import { Hono } from "hono";
@@ -959,7 +959,7 @@ apikeyRoutes.delete("/:id", requireAuth, async (c) => {
 });
 ```
 
-- [ ] **Step 4: app.ts に mount**
+- [x] **Step 4: app.ts に mount**
 
 import 追加:
 
@@ -973,12 +973,12 @@ import { apikeyRoutes } from "./routes/apikey";
   app.route("/api/apikey", apikeyRoutes);
 ```
 
-- [ ] **Step 5: テスト緑を確認 + typecheck**
+- [x] **Step 5: テスト緑を確認 + typecheck**
 
 Run: `pnpm --filter @picsur/api test routes/apikey && pnpm --filter @picsur/api typecheck`
 Expected: PASS（7 test）、typecheck エラー無し。
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add packages/api/src/routes/apikey.ts packages/api/src/routes/apikey.test.ts packages/api/src/app.ts
@@ -993,7 +993,7 @@ git commit -m "feat(api): add apikey issue/list/revoke routes"
 - Modify: `packages/api/src/routes/auth.ts`
 - Modify: `packages/api/src/routes/auth.test.ts`
 
-- [ ] **Step 1: 失敗するテストを書く — `packages/api/src/routes/auth.test.ts` 末尾に追加**
+- [x] **Step 1: 失敗するテストを書く — `packages/api/src/routes/auth.test.ts` 末尾に追加**
 
 ```ts
 test("password change without auth returns 401", async () => {
@@ -1077,12 +1077,12 @@ test("password change rotates credentials (old fails, new works)", async () => {
 
 > 注: このファイルの既存テストは "hunter2" でログインする。rotation テストは最後に必ず元へ戻す（restore のアサートまで含めてある）。テストはファイル内で宣言順に直列実行されるため、末尾追加なら既存テストへの影響はない。
 
-- [ ] **Step 2: テスト失敗を確認**
+- [x] **Step 2: テスト失敗を確認**
 
 Run: `pnpm --filter @picsur/api test routes/auth`
 Expected: FAIL（`/api/auth/password` が無く 404 等）
 
-- [ ] **Step 3: 実装 — `packages/api/src/routes/auth.ts`**
+- [x] **Step 3: 実装 — `packages/api/src/routes/auth.ts`**
 
 import を更新:
 
@@ -1115,12 +1115,12 @@ authRoutes.post("/password", requireAuth, async (c) => {
 });
 ```
 
-- [ ] **Step 4: テスト緑を確認 + typecheck**
+- [x] **Step 4: テスト緑を確認 + typecheck**
 
 Run: `pnpm --filter @picsur/api test routes/auth && pnpm --filter @picsur/api typecheck`
 Expected: PASS（10 test）、typecheck エラー無し。
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/api/src/routes/auth.ts packages/api/src/routes/auth.test.ts
@@ -1131,7 +1131,7 @@ git commit -m "feat(api): add password change route"
 
 ## Task 8: 最終確認
 
-- [ ] **Step 1: 全テスト + ワークスペース全体の緑確認**
+- [x] **Step 1: 全テスト + ワークスペース全体の緑確認**
 
 Run: `pnpm --filter @picsur/shared test && pnpm --filter @picsur/api test`
 Expected: shared / api 全テスト PASS。
@@ -1139,7 +1139,7 @@ Expected: shared / api 全テスト PASS。
 Run: `pnpm -r build && pnpm -r typecheck`
 Expected: shared / api / web 全緑。
 
-- [ ] **Step 2: Commit（変更があれば）**
+- [x] **Step 2: Commit（変更があれば）**
 
 新規変更が無ければ commit 不要。
 
@@ -1154,3 +1154,17 @@ Expected: shared / api / web 全緑。
 - EXT マップが shared `constants.ts` に統合され、routes/image・routes/i の重複定義が消える。
 - 全ルート未認証 401。全テスト + `pnpm -r build` + `pnpm -r typecheck` 緑。
 - 後続: Phase 4（web SPA）。バックエンドはこれで完結。
+
+## 実装完了メモ（2026-06-05、最終レビュー済み）
+
+全 8 タスク完了（`d9ac5f2`〜`45a7999`）。shared 10 + api 100 テスト / `pnpm -r build` / `pnpm -r typecheck` 全緑。最終レビュー verdict: Ready to merge。**Phase 3（api バックエンド）はこれで完結。**
+
+**途中で直した点:** updatePassword テストの後始末 / apikey レスポンスの snake_case 統一（`lastUsed` → `last_used`、最終レビュー指摘）。
+
+**Phase 4（web SPA）への引き継ぎ:**
+- API surface は 4 ページ分すべて揃っている（login / 一覧+upload / settings+apikey+password / 画像 view `/i`）。
+- レスポンスは snake_case で統一（`file_name` / `master_filetype` / `keep_original` / `last_used`）。
+- 認証は cookie（web）と `Api-Key` ヘッダ / `?key=`（ShareX・直リン）の両対応が全ルートで効いている。
+- 既知の許容事項: パスワード変更後も既存 JWT は失効しない（stateless、単一 admin で許容）/ apikey デフォルト名の乱数は連番でなく衝突しうる（cosmetic）。
+
+**Phase 5 への注意:** apikey は平文保存・無変換なので、migration で旧 `key` 値をそのまま運べば既存 ShareX 設定が生き続ける。
