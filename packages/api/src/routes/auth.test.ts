@@ -81,3 +81,81 @@ test("me with the login cookie returns the admin user", async () => {
   const json = (await res.json()) as { user: { username: string } };
   expect(json.user.username).toBe("admin");
 });
+
+test("password change without auth returns 401", async () => {
+  const res = await app.request("/api/auth/password", { method: "POST" });
+  expect(res.status).toBe(401);
+});
+
+test("password change with wrong current password returns 401", async () => {
+  const login = await app.request("/api/auth/login", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ username: "admin", password: "hunter2" }),
+  });
+  const cookie = login.headers.get("set-cookie")!.split(";")[0]!;
+
+  const res = await app.request("/api/auth/password", {
+    method: "POST",
+    headers: { Cookie: cookie, "content-type": "application/json" },
+    body: JSON.stringify({ current: "wrong", new: "next-password" }),
+  });
+  expect(res.status).toBe(401);
+});
+
+test("password change with empty new password returns 400", async () => {
+  const login = await app.request("/api/auth/login", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ username: "admin", password: "hunter2" }),
+  });
+  const cookie = login.headers.get("set-cookie")!.split(";")[0]!;
+
+  const res = await app.request("/api/auth/password", {
+    method: "POST",
+    headers: { Cookie: cookie, "content-type": "application/json" },
+    body: JSON.stringify({ current: "hunter2", new: "" }),
+  });
+  expect(res.status).toBe(400);
+});
+
+test("password change rotates credentials (old fails, new works)", async () => {
+  const login = await app.request("/api/auth/login", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ username: "admin", password: "hunter2" }),
+  });
+  const cookie = login.headers.get("set-cookie")!.split(";")[0]!;
+
+  const res = await app.request("/api/auth/password", {
+    method: "POST",
+    headers: { Cookie: cookie, "content-type": "application/json" },
+    body: JSON.stringify({ current: "hunter2", new: "correct horse" }),
+  });
+  expect(res.status).toBe(200);
+
+  // 旧パスワードでは login 不可
+  const oldLogin = await app.request("/api/auth/login", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ username: "admin", password: "hunter2" }),
+  });
+  expect(oldLogin.status).toBe(401);
+
+  // 新パスワードで login 可
+  const newLogin = await app.request("/api/auth/login", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ username: "admin", password: "correct horse" }),
+  });
+  expect(newLogin.status).toBe(200);
+
+  // 後始末: 他テストが "hunter2" 前提なので戻す
+  const cookie2 = newLogin.headers.get("set-cookie")!.split(";")[0]!;
+  const restore = await app.request("/api/auth/password", {
+    method: "POST",
+    headers: { Cookie: cookie2, "content-type": "application/json" },
+    body: JSON.stringify({ current: "correct horse", new: "hunter2" }),
+  });
+  expect(restore.status).toBe(200);
+});

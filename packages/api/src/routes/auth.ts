@@ -1,8 +1,8 @@
 import { Hono } from "hono";
 import { deleteCookie, setCookie } from "hono/cookie";
 import { signAuthToken } from "../auth/jwt";
-import { verifyPassword } from "../auth/password";
-import { getUserByUsername } from "../db/queries";
+import { hashPassword, verifyPassword } from "../auth/password";
+import { getUserByUsername, updatePassword } from "../db/queries";
 import { env } from "../env";
 import { AUTH_COOKIE, requireAuth } from "../middleware/auth";
 import type { AppBindings } from "../types";
@@ -49,4 +49,24 @@ authRoutes.post("/logout", (c) => {
 // 現在のユーザー（要認証）
 authRoutes.get("/me", requireAuth, (c) => {
   return c.json({ user: c.var.user });
+});
+
+// パスワード変更（要認証）。現パスワード照合 → bcrypt 再ハッシュ
+authRoutes.post("/password", requireAuth, async (c) => {
+  const body = await c.req.json().catch(() => null);
+  const current = typeof body?.current === "string" ? body.current : "";
+  const next = typeof body?.new === "string" ? body.new : "";
+  if (next === "") {
+    return c.json({ error: "new password required" }, 400);
+  }
+
+  const me = c.var.user!;
+  const row = await getUserByUsername(c.var.db, me.username);
+  const ok = row ? await verifyPassword(current, row.password) : false;
+  if (!ok) {
+    return c.json({ error: "invalid credentials" }, 401);
+  }
+
+  await updatePassword(c.var.db, me.id, await hashPassword(next));
+  return c.json({ ok: true });
 });
