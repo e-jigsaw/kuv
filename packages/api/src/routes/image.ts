@@ -65,6 +65,7 @@ imageRoutes.post("/", requireAuth, async (c) => {
 });
 
 // 削除（要認証）。所有者一致のみ。
+// c.var.user.id は DB 由来の UUID（deleteImage は非 UUID を渡すと pg エラーを投げる契約）
 imageRoutes.delete("/:id", requireAuth, async (c) => {
   const id = c.req.param("id");
   const ok = await deleteImage(c.var.db, id, c.var.user!.id);

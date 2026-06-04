@@ -1,5 +1,6 @@
 import type { Hono } from "hono";
 import { afterAll, beforeAll, expect, test } from "vitest";
+import sharp from "sharp";
 import { createApp } from "../app";
 import { hashPassword } from "../auth/password";
 import { fixture } from "../test/fixtures";
@@ -102,11 +103,18 @@ test("delete without auth returns 401", async () => {
 });
 
 test("delete removes an uploaded image", async () => {
+  // 他テストと bytes が被らないよう sharp で専用の青い 8x8 PNG を生成する
+  const buf = await sharp({
+    create: { width: 8, height: 8, channels: 3, background: { r: 0, g: 0, b: 255 } },
+  })
+    .png()
+    .toBuffer();
   const up = await app.request("/api/image", {
     method: "POST",
     headers: { Cookie: cookie },
-    body: form(await fixture("red.png"), "red.png", "image/png"),
+    body: form(buf, "blue.png", "image/png"),
   });
+  expect(up.status).toBe(200);
   const { id } = (await up.json()) as { id: string };
 
   const del = await app.request(`/api/image/${id}`, {
