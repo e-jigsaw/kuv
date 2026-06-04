@@ -30,7 +30,7 @@
 - Create: `packages/api/src/util/mutex-fallback.ts`
 - Test: `packages/api/src/util/mutex-fallback.test.ts`
 
-- [ ] **Step 1: 失敗するテストを書く — `packages/api/src/util/mutex-fallback.test.ts`**
+- [x] **Step 1: 失敗するテストを書く — `packages/api/src/util/mutex-fallback.test.ts`**
 
 ```ts
 import { expect, test } from "vitest";
@@ -104,12 +104,12 @@ test("different keys do not block each other", async () => {
 });
 ```
 
-- [ ] **Step 2: テスト失敗を確認**
+- [x] **Step 2: テスト失敗を確認**
 
 Run: `pnpm --filter @picsur/api test mutex`
 Expected: FAIL（`./mutex-fallback` が無い）
 
-- [ ] **Step 3: 実装 — `packages/api/src/util/mutex-fallback.ts`**
+- [x] **Step 3: 実装 — `packages/api/src/util/mutex-fallback.ts`**
 
 旧実装（`archive/backend/src/util/mutex-fallback.ts`）の忠実移植。fallback の rejection は呼び出し元へそのまま伝播させる（握りつぶして再試行ループに入らない）。
 
@@ -145,17 +145,17 @@ export async function mutexFallBack<O>(
 }
 ```
 
-- [ ] **Step 4: テスト緑を確認**
+- [x] **Step 4: テスト緑を確認**
 
 Run: `pnpm --filter @picsur/api test mutex`
 Expected: PASS（4 test）
 
-- [ ] **Step 5: typecheck**
+- [x] **Step 5: typecheck**
 
 Run: `pnpm --filter @picsur/api typecheck`
 Expected: エラー無し。
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add packages/api/src/util/mutex-fallback.ts packages/api/src/util/mutex-fallback.test.ts
@@ -173,7 +173,7 @@ master buffer を対象形式に変換する（形式変換のみ、編集無し
 - Test: `packages/api/src/services/image-convert.test.ts`
 - Modify: `packages/api/src/services/image-ingest.ts`（`OUTPUT_FORMAT` を export）
 
-- [ ] **Step 1: 失敗するテストを書く — `packages/api/src/services/image-convert.test.ts`**
+- [x] **Step 1: 失敗するテストを書く — `packages/api/src/services/image-convert.test.ts`**
 
 ```ts
 import { createHash } from "node:crypto";
@@ -212,12 +212,12 @@ test("flattens an animated gif to a still png (first frame)", async () => {
 });
 ```
 
-- [ ] **Step 2: テスト失敗を確認**
+- [x] **Step 2: テスト失敗を確認**
 
 Run: `pnpm --filter @picsur/api test image-convert`
 Expected: FAIL（`./image-convert` が無い）
 
-- [ ] **Step 3: `OUTPUT_FORMAT` を export — `packages/api/src/services/image-ingest.ts`**
+- [x] **Step 3: `OUTPUT_FORMAT` を export — `packages/api/src/services/image-ingest.ts`**
 
 既存の宣言に `export` を付けるだけ:
 
@@ -231,7 +231,7 @@ export const OUTPUT_FORMAT: Record<SupportedMime, "png" | "jpeg" | "webp" | "gif
 };
 ```
 
-- [ ] **Step 4: 実装 — `packages/api/src/services/image-convert.ts`**
+- [x] **Step 4: 実装 — `packages/api/src/services/image-convert.ts`**
 
 ```ts
 import { createHash } from "node:crypto";
@@ -258,17 +258,17 @@ export async function convertImage(
 }
 ```
 
-- [ ] **Step 5: テスト緑を確認（image-ingest の回帰も）**
+- [x] **Step 5: テスト緑を確認（image-ingest の回帰も）**
 
 Run: `pnpm --filter @picsur/api test image-convert && pnpm --filter @picsur/api test image-ingest`
 Expected: image-convert 4 test PASS、image-ingest 7 test PASS（export 化の回帰なし）。
 
-- [ ] **Step 6: typecheck**
+- [x] **Step 6: typecheck**
 
 Run: `pnpm --filter @picsur/api typecheck`
 Expected: エラー無し。
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add packages/api/src/services/image-convert.ts packages/api/src/services/image-convert.test.ts packages/api/src/services/image-ingest.ts
@@ -285,7 +285,7 @@ git commit -m "feat(api): add image format conversion service with derivative ke
 - Modify: `packages/api/src/db/image-queries.ts`
 - Modify: `packages/api/src/db/image-queries.test.ts`
 
-- [ ] **Step 1: 失敗するテストを書く — `packages/api/src/db/image-queries.test.ts`**
+- [x] **Step 1: 失敗するテストを書く — `packages/api/src/db/image-queries.test.ts`**
 
 既存テストの修正 + 新テスト追加。
 
@@ -383,12 +383,12 @@ test("insertDerivative ignores a duplicate (image_id, key)", async () => {
 });
 ```
 
-- [ ] **Step 2: テスト失敗を確認**
+- [x] **Step 2: テスト失敗を確認**
 
 Run: `pnpm --filter @picsur/api test image-queries`
 Expected: FAIL（`getImageFile` 等が export されていない / round-trip の `masterFiletype` が無い）
 
-- [ ] **Step 3: 実装 — `packages/api/src/db/image-queries.ts`**
+- [x] **Step 3: 実装 — `packages/api/src/db/image-queries.ts`**
 
 (a) import を更新:
 
@@ -498,19 +498,19 @@ export async function insertDerivative(
 }
 ```
 
-- [ ] **Step 4: テスト緑を確認**
+- [x] **Step 4: テスト緑を確認**
 
 Run: `pnpm --filter @picsur/api test image-queries`
 Expected: PASS（11 test）
 
-- [ ] **Step 5: 他テストの回帰 + typecheck**
+- [x] **Step 5: 他テストの回帰 + typecheck**
 
 `findImageById` の戻り値が変わったので、利用箇所（`routes/image.ts` の dedupe 分岐）が typecheck で壊れていないか確認。dedupe 分岐は `existing.id` / `existing.fileName` しか使っていないので通るはず。
 
 Run: `pnpm --filter @picsur/api typecheck && pnpm --filter @picsur/api test routes/image`
 Expected: typecheck エラー無し、routes/image 7 test PASS。
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add packages/api/src/db/image-queries.ts packages/api/src/db/image-queries.test.ts
@@ -525,7 +525,7 @@ git commit -m "feat(api): add file/derivative queries, master filetype on findIm
 - Modify: `packages/api/src/routes/image.ts`
 - Modify: `packages/api/src/routes/image.test.ts`
 
-- [ ] **Step 1: 失敗するテストを書く — `packages/api/src/routes/image.test.ts`**
+- [x] **Step 1: 失敗するテストを書く — `packages/api/src/routes/image.test.ts`**
 
 (a) 既存の dedupe テストに direct リンクのアサートを追加（still.webp の再アップロードなので `.webp` が正しい。現実装は `"image/png"` 固定なので `.png` が返って落ちる = RED）:
 
@@ -595,12 +595,12 @@ import に `settings` を追加:
 import { settings } from "@picsur/shared";
 ```
 
-- [ ] **Step 2: テスト失敗を確認**
+- [x] **Step 2: テスト失敗を確認**
 
 Run: `pnpm --filter @picsur/api test routes/image`
 Expected: dedupe テストが `.png` ≠ `.webp` で FAIL（keep_original テストは現実装で通るはずの characterization — 通った場合はそのまま）。
 
-- [ ] **Step 3: dedupe 分岐を修正 — `packages/api/src/routes/image.ts`**
+- [x] **Step 3: dedupe 分岐を修正 — `packages/api/src/routes/image.ts`**
 
 dedupe 分岐を以下に変更:
 
@@ -618,17 +618,17 @@ dedupe 分岐を以下に変更:
   }
 ```
 
-- [ ] **Step 4: テスト緑を確認**
+- [x] **Step 4: テスト緑を確認**
 
 Run: `pnpm --filter @picsur/api test routes/image`
 Expected: PASS（8 test）
 
-- [ ] **Step 5: typecheck**
+- [x] **Step 5: typecheck**
 
 Run: `pnpm --filter @picsur/api typecheck`
 Expected: エラー無し。
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add packages/api/src/routes/image.ts packages/api/src/routes/image.test.ts
@@ -644,7 +644,7 @@ git commit -m "fix(api): use master filetype in dedupe links, cover keep_origina
 - Test: `packages/api/src/routes/i.test.ts`
 - Modify: `packages/api/src/app.ts`
 
-- [ ] **Step 1: ルートを実装 — `packages/api/src/routes/i.ts`**
+- [x] **Step 1: ルートを実装 — `packages/api/src/routes/i.ts`**
 
 ```ts
 import type { SupportedMime } from "@picsur/shared";
@@ -716,7 +716,7 @@ iRoutes.get("/:idWithExt", requireAuth, async (c) => {
 ```
 
 
-- [ ] **Step 2: app.ts に mount — `packages/api/src/app.ts`**
+- [x] **Step 2: app.ts に mount — `packages/api/src/app.ts`**
 
 import 追加:
 
@@ -730,7 +730,7 @@ import { iRoutes } from "./routes/i";
   app.route("/i", iRoutes);
 ```
 
-- [ ] **Step 3: 統合テストを書く — `packages/api/src/routes/i.test.ts`**
+- [x] **Step 3: 統合テストを書く — `packages/api/src/routes/i.test.ts`**
 
 ```ts
 import type { Hono } from "hono";
@@ -892,17 +892,17 @@ test("unknown extension returns 404", async () => {
 });
 ```
 
-- [ ] **Step 4: テスト実行**
+- [x] **Step 4: テスト実行**
 
 Run: `pnpm --filter @picsur/api test routes/i.test`
 Expected: PASS（9 test）。**一度も RED を見ていないので、検証性確認をすること**: 例えば `cache-control` の期待値を一時的に変えて落ちることを確認 → 戻す。
 
-- [ ] **Step 5: 回帰 + typecheck**
+- [x] **Step 5: 回帰 + typecheck**
 
 Run: `pnpm --filter @picsur/api test && pnpm --filter @picsur/api typecheck`
 Expected: 全テスト PASS（routes/image・既存含む）、typecheck エラー無し。
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add packages/api/src/routes/i.ts packages/api/src/routes/i.test.ts packages/api/src/app.ts
@@ -913,7 +913,7 @@ git commit -m "feat(api): add GET /i image serving with on-demand conversion cac
 
 ## Task 6: 最終確認
 
-- [ ] **Step 1: api 全テスト + ワークスペース全体の緑確認**
+- [x] **Step 1: api 全テスト + ワークスペース全体の緑確認**
 
 Run: `pnpm --filter @picsur/api test`
 Expected: 全テストファイル PASS（mutex / image-convert / image-queries 11 / routes/image 8 / routes/i 9 / 既存 auth・password・jwt・queries・health）。
@@ -921,7 +921,7 @@ Expected: 全テストファイル PASS（mutex / image-convert / image-queries 
 Run: `pnpm -r build && pnpm -r typecheck`
 Expected: shared / api / web 全緑。
 
-- [ ] **Step 2: Commit（変更があれば）**
+- [x] **Step 2: Commit（変更があれば）**
 
 新規変更が無ければ commit 不要。
 
@@ -936,3 +936,14 @@ Expected: shared / api / web 全緑。
 - 3b-1 引き継ぎ解消: dedupe links が master の実形式、owner 未チェックのコメント明記、keep_original ON の統合テスト。
 - 全テスト + `pnpm -r build` + `pnpm -r typecheck` 緑。
 - 後続: Plan 3c（settings / apikey / パスワード変更 / 画像一覧 API）。
+
+## 実装完了メモ（2026-06-04、最終レビュー済み）
+
+全 6 タスク完了（`73e0dea`〜`d65b111`）。73 テスト（12 ファイル）/ `pnpm -r build` / `pnpm -r typecheck` 全緑。最終レビュー verdict: Ready to merge。
+
+**途中で直した点:** jpeg 変換の白背景 flatten（sharp デフォルトは黒合成）/ 空 id guard + エッジ 3 テスト / ゼロコピー view 化 / insertDerivative の reject 契約コメント（mutex 無限再帰の防波堤）。
+
+**Plan 3c への引き継ぎ:**
+- `EXT`（mime→ext, routes/image.ts）と `EXT_TO_MIME`（ext→mime, routes/i.ts）が別ファイルに重複定義。3c で画像一覧の links を組むなら shared の constants への統合を検討。
+- 画像一覧 API は `findImageById` と同じ master 限定 innerJoin パターンを流用すると variant ごとの重複行を避けられる。
+- apikey 認証は authMiddleware が解決済みなので、3c は apikey の発行・失効ルートを足すだけで `/i` も `/api/image` も apikey で通る。
