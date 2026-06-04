@@ -34,12 +34,16 @@ imageRoutes.post("/", requireAuth, async (c) => {
   }
   const buf = Buffer.from(await file.arrayBuffer());
 
-  // dedupe: 既存 id なら再処理せず既存を返す
+  // dedupe: 既存 id なら再処理せず既存を返す。
+  // 注: owner は見ない（単一 admin 前提。マルチユーザー化するなら要 owner チェック）
   const id = hashBuffer(buf);
   const existing = await findImageById(c.var.db, id);
   if (existing) {
-    // master の filetype を引いて links を返す
-    return c.json({ id: existing.id, file_name: existing.fileName, links: links(id, "image/png") });
+    return c.json({
+      id: existing.id,
+      file_name: existing.fileName,
+      links: links(id, existing.masterFiletype),
+    });
   }
 
   const user = c.var.user!;

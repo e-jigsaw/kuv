@@ -1,6 +1,7 @@
 import type { Hono } from "hono";
 import { afterAll, beforeAll, expect, test } from "vitest";
 import sharp from "sharp";
+import { settings } from "@picsur/shared";
 import { createApp } from "../app";
 import { hashPassword } from "../auth/password";
 import { fixture } from "../test/fixtures";
@@ -78,8 +79,13 @@ test("uploading the same bytes twice dedupes to the same id", async () => {
     body: form(buf, "b.webp", "image/webp"),
   });
   const j1 = (await first.json()) as { id: string };
-  const j2 = (await second.json()) as { id: string };
+  const j2 = (await second.json()) as {
+    id: string;
+    links: { view: string; direct: string };
+  };
   expect(j2.id).toBe(j1.id);
+  // dedupe 応答でも master の実形式で direct リンクが組まれる
+  expect(j2.links.direct).toBe(`/i/${j1.id}.webp`);
   // 行は1つだけ
   const { rows } = await tdb.pool.query(
     "select count(*)::int as n from image where id = $1",
@@ -136,4 +142,30 @@ test("deleting a missing image returns 404", async () => {
     headers: { Cookie: cookie },
   });
   expect(res.status).toBe(404);
+});
+
+test("upload stores original too when keep_original is on", async () => {
+  await tdb.db.insert(settings).values({ id: 1, keepOriginal: true });
+  try {
+    const buf = await sharp({
+      create: { width: 8, height: 8, channels: 3, background: { r: 0, g: 255, b: 255 } },
+    })
+      .png()
+      .toBuffer();
+    const res = await app.request("/api/image", {
+      method: "POST",
+      headers: { Cookie: cookie },
+      body: form(buf, "cyan.png", "image/png"),
+    });
+    expect(res.status).toBe(200);
+    const { id } = (await res.json()) as { id: string };
+
+    const { rows } = await tdb.pool.query(
+      "select variant from image_file where image_id = $1 order by variant",
+      [id],
+    );
+    expect(rows.map((r) => r.variant)).toEqual(["master", "original"]);
+  } finally {
+    await tdb.db.delete(settings);
+  }
 });
