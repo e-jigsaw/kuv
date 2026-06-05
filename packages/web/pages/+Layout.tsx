@@ -5,7 +5,11 @@ import "./tailwind.css";
 
 function Header() {
   const onLogout = async () => {
-    await apiPost("/api/auth/logout");
+    try {
+      await apiPost("/api/auth/logout");
+    } catch {
+      // logout API が失敗しても強制的に /login へ（cookie はサーバ側で期限切れになる）
+    }
     // ガードに任せず明示的に遷移（full reload で状態も破棄）
     window.location.href = "/login";
   };
