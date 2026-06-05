@@ -119,10 +119,22 @@ Picsur/ (pnpm workspace, Node24/mise)
   - `/login` — admin ログイン
   - `/` — アップロード + 自分の画像一覧（要認証）
   - `/settings` — `keep_original` / apikey 発行・失効 / パスワード変更（要認証）
-  - `/:id` — 画像 view ページ（要認証、SPA）
+  - `/image/:id` — 画像 view ページ（要認証、SPA）。~~`/:id`~~ から変更（2026-06-05）: トップレベル catch-all は `/login`・`/settings` とのルート優先順位に依存して壊れやすく、自家用で URL の短さに価値が無いため明示プレフィックスにする
 - Vike は全ページ `ssr: false` の SPA モード。認証ガードは Vike の guard フック（未認証 → `/login` へ）。
 - データ取得は `/api` を fetch（SSR データ規約は使わない）。画像は `<img src="/i/...">`（cookie 認証）。
 - UI は軽量方針。旧 Angular Material + Bootstrap は踏襲しない。Tailwind + 手書きコンポーネント。
+
+### Phase 4 の決定事項（2026-06-05 追記）
+
+- **dev プロキシ**: `vite.config.ts` の `server.proxy` で `/api` と `/i` → `http://localhost:3001`。開発時は `dev:api` + `dev:web` 並走で単一オリジン同等（本番は Caddy）。
+- **API クライアント**: `lib/api.ts` — `apiGet/apiPost/apiPut/apiDelete`（JSON、401 は `UnauthorizedError` throw）+ `uploadImage(file)`（multipart）。レスポンス型は api の snake_case をそのまま interface 化。
+- **認証ガード**: `pages/+guard.ts` 1 本（ルート共通）。`/login` 以外で `GET /api/auth/me` → 401 なら `throw redirect("/login")`。ssr:false なのでクライアント実行。
+- **アップロード UX**: input[type=file] のみ（主経路は ShareX。D&D / paste は YAGNI）。
+- **一覧サムネ**: `<img src={links.view}>` を CSS 縮小（リサイズ derivative は無いので原寸配信、自家用で許容）。
+- **view ページ**: 画像 + file_name/created + direct リンクコピー + 削除（確認 → `DELETE` → `/` へ）。
+- **settings ページ**: keep_original トグル / apikey 一覧+発行+失効（key クリックでコピー）/ パスワード変更。
+- **共通 UI**: ヘッダーに `/`・`/settings` ナビ + logout。dark theme（既存 Layout の neutral-950）踏襲。エラーはフォーム単位のインライン表示のみ（toast は YAGNI）。
+- **テスト**: スモーク — `lib/api.ts` ユニット（fetch モック）+ 各 Page のレンダースモーク（@testing-library/react + jsdom）+ `pnpm -r build` 通過。E2E は無し。
 
 ## 移行 / データ引き継ぎ
 
