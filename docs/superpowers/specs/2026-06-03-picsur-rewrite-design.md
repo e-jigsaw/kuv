@@ -192,6 +192,33 @@ Picsur/ (pnpm workspace, Node24/mise)
 
 **kuv リネーム後の補足（2026-06-07）:** プロジェクトは kuv に改名済み（`docs/superpowers/specs/2026-06-07-kuv-rename-design.md`）。新 CT は最初から kuv として構築する — env は `KUV_*`、postgres の db/user は `kuv`、`pg_dump` の restore 先も `kuv` データベース。
 
+### Phase 5 の決定事項（2026-06-07 追記）
+
+成果物と配置:
+
+| 成果物 | パス |
+|---|---|
+| web の self-contained イメージ | `packages/web/Dockerfile`（新規） |
+| compose 修正 | `docker-compose.yml`（web bind-mount 削除 → build） |
+| 移行 SQL | `deploy/migrate-from-picsur.sql`（新規） |
+| CT セットアップ手順書 | `deploy/MIGRATION.md`（新規、機微情報なしのテンプレ） |
+
+- **api Dockerfile の runtime 依存は解決済み**（`2b2fce3`、`pnpm deploy --prod --legacy` で bcrypt/pg/sharp を runtime ステージに同梱）。
+- **web self-contained 化**: `packages/web/Dockerfile` — node:24-alpine の build ステージで `pnpm --filter @kuv/web build` → `caddy:2-alpine` に `dist/client` を `/srv/web` へ COPY。compose の caddy は `image:` + bind-mount をやめて `build:` に変更。**Caddyfile の bind-mount は維持**（設定変更でリビルドしない。repo は CT に clone 前提）。CT 側は git clone + `docker compose up -d --build` で完結し node/pnpm のホストインストール不要。
+- **移行 SQL は in-place RENAME 方式**（コピー方式でなく）。restore 済み `kuv` DB に psql で適用、**全体 1 トランザクション**（失敗時は全ロールバック）。処理順:
+  1. ガード（DO ブロック、違反は RAISE EXCEPTION で中断）: admin 以外のユーザが所有する image が 0 件 / `expires_at IS NOT NULL` の image 件数を RAISE NOTICE（期限機能は移植しない、0 件想定の確認）
+  2. `e_user_backend` → `user`: admin 以外の行 DELETE、`roles` DROP、`hashed_password` → `password`
+  3. `e_api_key_backend` → `apikey`: `"userId"` → `user_id`（旧 FK カラムは camelCase、V_0_4_0_a migration で確認済み）。**key は平文・無変換**で既存 ShareX キーを生かす
+  4. `e_image_backend_v2` → `image`: `expires_at` / `delete_key` DROP
+  5. `e_image_file_backend_v2` → `image_file`: `_id` → `id`、variant CHECK 追加
+  6. `e_image_derivative_backend_v2` → `image_derivative`: 同様の RENAME 後に **TRUNCATE**（key 規約非互換、再生成可能）
+  7. settings: admin の `e_usr_preference_backend` の `keep_original`（value は文字列 `'true'`/`'false'`）を `settings (id=1)` に INSERT、無ければ default false
+  8. DROP: `e_role_backend` / `e_sys_preference_backend` / `e_usr_preference_backend` / `e_system_state_backend` / TypeORM `migrations` / v1 残骸（`e_image_backend` 等が残っていれば）
+  9. constraint・index・型・default を drizzle ベースライン（`packages/shared/drizzle/0000_*.sql`）に名前まで完全一致させる（`character varying` → `text`、`uuid_generate_v4()` → `gen_random_uuid()`、`now()` default 等）。将来の drizzle migration が衝突しないため
+- **検証は CT 適用がリハーサル兼用**（自動テストは書かない）。手順書に「`0000_*.sql` から作った素の DB と移行後 DB の `pg_dump --schema-only` を diff して一致確認」を入れ、in-place 方式の弱点（constraint 名ズレ）を機械的に検出する。
+- **`deploy/MIGRATION.md` の構成**: CT 作成（docker + compose、repo clone）→ `.env` 作成（`KUV_JWT_SECRET`）→ `compose up -d --build` + 空 DB へ `0000_*.sql` 適用で正常起動確認 → 旧 CT から `pg_dump`（読み取りのみ）→ 新 CT で `kuv` DB 作り直し + restore → 移行 SQL 適用 + schema diff 検証 → 動作確認チェックリスト（admin ログイン / 既存画像表示 / ShareX apikey でアップロード / keep_original 値）→ NPM proxy 切り替え（新 CT `:8080`）→ 様子見後に旧 CT 停止。
+- **やらないこと**: 移行 SQL の自動テスト / derivative 引き継ぎ / expires_at・delete_key 機能の移植 / multi-arch・レジストリ push（compose build でローカル完結）。
+
 ## 非対象（このスペックでやらないこと）
 
 - 公開ギャラリー / アルバム / 複数ユーザー / 共有リンクの匿名閲覧
