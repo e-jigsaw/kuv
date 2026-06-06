@@ -190,6 +190,8 @@ Picsur/ (pnpm workspace, Node24/mise)
 
 この方式により、移行 SQL の失敗・新スタックの不具合のどちらも「NPM を旧に向け直す」だけで復旧できる。旧 DB を直接 ALTER しないので、リハーサルと本番適用の区別も実質不要（新 CT での適用がそのままリハーサルを兼ねる）。
 
+**kuv リネーム後の補足（2026-06-07）:** プロジェクトは kuv に改名済み（`docs/superpowers/specs/2026-06-07-kuv-rename-design.md`）。新 CT は最初から kuv として構築する — env は `KUV_*`、postgres の db/user は `kuv`、`pg_dump` の restore 先も `kuv` データベース。
+
 ## 非対象（このスペックでやらないこと）
 
 - 公開ギャラリー / アルバム / 複数ユーザー / 共有リンクの匿名閲覧
