@@ -177,6 +177,19 @@ Picsur/ (pnpm workspace, Node24/mise)
 - env: `PICSUR_JWT_SECRET` / DB creds 等。dev は `mise.toml`（node24 + pnpm）。
 - 旧 2-stage buildx / multi-arch / ghcr push は全廃止。
 
+### Phase 5 の移行戦略（2026-06-07 追記）
+
+**blue-green 方式 — 旧系統は無傷のまま並走させ、前段の nginx proxy manager で切り替える。**
+
+1. 新規 CT を作成し、新スタック（caddy + api + postgres の compose）をデプロイ
+2. 旧 CT の postgres から `pg_dump` を取得 → **新 CT の postgres に restore**（旧 DB への書き込みは一切しない。読み取り一度きり）
+3. 移行 SQL（`e_*_backend_v2` → 新テーブル RENAME / DROP roles・permissions・system_state / preferences → settings 統合 / derivative TRUNCATE）は**新 CT 側のコピーに対して適用**
+4. 新 CT 単体で動作確認（既存画像・admin ログイン・ShareX apikey の生存確認）
+5. nginx proxy manager の proxy 先を旧 CT → 新 CT に切り替え
+6. しばらく様子を見て問題なければ旧 CT を停止（それまではいつでも NPM の切り戻しでロールバック可能）
+
+この方式により、移行 SQL の失敗・新スタックの不具合のどちらも「NPM を旧に向け直す」だけで復旧できる。旧 DB を直接 ALTER しないので、リハーサルと本番適用の区別も実質不要（新 CT での適用がそのままリハーサルを兼ねる）。
+
 ## 非対象（このスペックでやらないこと）
 
 - 公開ギャラリー / アルバム / 複数ユーザー / 共有リンクの匿名閲覧
