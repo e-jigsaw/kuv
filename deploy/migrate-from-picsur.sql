@@ -41,6 +41,15 @@ ALTER TABLE "e_user_backend" RENAME TO "user";
 -- guest 等は FK cascade で配下の usr_preference / apikey ごと消える
 -- （所有画像が無いことはガード済み）
 DELETE FROM "user" WHERE username <> 'admin';
+-- dump に admin がいない等で user が空になったらここで中断（fail-closed）
+DO $$
+DECLARE n bigint;
+BEGIN
+  SELECT count(*) INTO n FROM "user";
+  IF n <> 1 THEN
+    RAISE EXCEPTION 'aborting: expected exactly 1 user (admin) after cleanup, found %', n;
+  END IF;
+END $$;
 ALTER TABLE "user" DROP COLUMN "roles";
 ALTER TABLE "user" RENAME COLUMN "hashed_password" TO "password";
 ALTER TABLE "user" ALTER COLUMN "username" TYPE text;
@@ -134,6 +143,18 @@ CREATE TABLE "settings" (
 	"keep_original" boolean DEFAULT false NOT NULL,
 	CONSTRAINT "settings_single_row" CHECK ("settings"."id" = 1)
 );
+-- value は 'true' / 'false' の文字列のはず。想定外の値なら静かに false に倒さず中断
+DO $$
+DECLARE v text;
+BEGIN
+  SELECT p.value INTO v
+  FROM "e_usr_preference_backend" p
+  JOIN "user" u ON u.id = p.user_id
+  WHERE p.key = 'keep_original';
+  IF v IS NOT NULL AND v NOT IN ('true', 'false') THEN
+    RAISE EXCEPTION 'aborting: unexpected keep_original value %', quote_literal(v);
+  END IF;
+END $$;
 -- 旧 usr preference の value は文字列 'true' / 'false'
 INSERT INTO "settings" ("id", "keep_original")
 SELECT 1, (p.value = 'true')
