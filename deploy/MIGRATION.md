@@ -49,7 +49,7 @@ curl -s  http://localhost:8080/api/auth/me       # 401 JSON が返る
 pg_dump -U <旧DBユーザ> -Fc <旧DB名> > /tmp/picsur.dump
 ```
 
-新 CT へ転送:
+新 CT 上で（旧 CT から pull）:
 
 ```bash
 scp <旧CTホスト>:/tmp/picsur.dump /opt/kuv/picsur.dump
@@ -57,16 +57,19 @@ scp <旧CTホスト>:/tmp/picsur.dump /opt/kuv/picsur.dump
 
 ## 5. 新 CT で restore（kuv DB を作り直してから）
 
+§3 のスモークで入れた空スキーマは捨てて、dump から作り直す:
+
 ```bash
 cd /opt/kuv
 docker compose stop api                  # restore 中の書き込みを防ぐ
-docker compose exec postgres dropdb -U kuv kuv
+docker compose exec postgres dropdb --force -U kuv kuv
 docker compose exec postgres createdb -U kuv kuv
 docker compose exec -T postgres pg_restore -U kuv -d kuv --no-owner --no-privileges \
   < picsur.dump
 ```
 
 `--no-owner --no-privileges` は必須（旧 DB の role 名は新 postgres に存在しない）。
+`--force` は残存接続を切ってから drop する（psql セッションの閉じ忘れ対策）。
 
 ## 6. 移行 SQL の適用
 
@@ -90,8 +93,8 @@ docker compose exec -T postgres psql -U kuv -d kuv -v ON_ERROR_STOP=1 \
 docker compose exec postgres createdb -U kuv baseline
 docker compose exec -T postgres psql -U kuv -d baseline -v ON_ERROR_STOP=1 \
   < packages/shared/drizzle/0000_nostalgic_baron_zemo.sql
-docker compose exec postgres pg_dump -U kuv --schema-only baseline | grep -vE '^\(un)?restrict' > /tmp/baseline.sql
-docker compose exec postgres pg_dump -U kuv --schema-only kuv      | grep -vE '^\(un)?restrict' > /tmp/migrated.sql
+docker compose exec -T postgres pg_dump -U kuv --schema-only baseline | grep -vE '^\(un)?restrict' > /tmp/baseline.sql
+docker compose exec -T postgres pg_dump -U kuv --schema-only kuv      | grep -vE '^\(un)?restrict' > /tmp/migrated.sql
 diff /tmp/baseline.sql /tmp/migrated.sql && echo "SCHEMA MATCH"
 docker compose exec postgres dropdb -U kuv baseline
 ```
