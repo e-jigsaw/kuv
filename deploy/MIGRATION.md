@@ -84,6 +84,7 @@ docker compose exec -T postgres psql -U kuv -d kuv -v ON_ERROR_STOP=1 \
   - `ERROR: aborting: N image(s) owned by non-admin or unknown users` — admin 以外の所有画像がある。対処を決めてから再実行（勝手に消さない）
   - `ERROR: aborting: expected exactly 1 user (admin) after cleanup, found N` — dump に admin ユーザがいない。dump の取得元を確認
   - `ERROR: aborting: unexpected keep_original value ...` — preference の値が想定外。値を確認してから判断
+- 上記以外のエラー（例: 旧 DB に view 等の想定外の依存オブジェクトがあって ALTER が失敗）で止まった場合も全ロールバックされているので、コピー DB を §5 から作り直せばよい。旧系統は常に無傷。
 
 ## 7. schema diff 検証
 
@@ -93,8 +94,8 @@ docker compose exec -T postgres psql -U kuv -d kuv -v ON_ERROR_STOP=1 \
 docker compose exec postgres createdb -U kuv baseline
 docker compose exec -T postgres psql -U kuv -d baseline -v ON_ERROR_STOP=1 \
   < packages/shared/drizzle/0000_nostalgic_baron_zemo.sql
-docker compose exec -T postgres pg_dump -U kuv --schema-only baseline | grep -vE '^\(un)?restrict' > /tmp/baseline.sql
-docker compose exec -T postgres pg_dump -U kuv --schema-only kuv      | grep -vE '^\(un)?restrict' > /tmp/migrated.sql
+docker compose exec -T postgres pg_dump -U kuv --schema-only baseline | grep -vE '^\\(un)?restrict' > /tmp/baseline.sql
+docker compose exec -T postgres pg_dump -U kuv --schema-only kuv      | grep -vE '^\\(un)?restrict' > /tmp/migrated.sql
 diff /tmp/baseline.sql /tmp/migrated.sql && echo "SCHEMA MATCH"
 docker compose exec postgres dropdb -U kuv baseline
 ```
