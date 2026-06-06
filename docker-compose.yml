@@ -29,15 +29,14 @@ services:
         condition: service_healthy
 
   caddy:
-    image: caddy:2-alpine
+    build:
+      context: .
+      dockerfile: packages/web/Dockerfile
     ports:
       - "8080:80"
     volumes:
+      # Caddyfile だけは bind-mount（設定変更でイメージ再ビルドしないため）
       - ./Caddyfile:/etc/caddy/Caddyfile
-      # web は静的SPA。`pnpm --filter @kuv/web build` で生成した dist/client を bind-mount する。
-      # `docker compose up` の前に web をビルドしておくこと。
-      # （本番向けに web をイメージへ焼く self-contained 化は後続のデプロイ整備フェーズで対応）
-      - ./packages/web/dist/client:/srv/web
     depends_on:
       - api
 
