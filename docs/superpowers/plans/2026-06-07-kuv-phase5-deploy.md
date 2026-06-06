@@ -644,3 +644,25 @@ git add docs/superpowers/plans/2026-06-07-kuv-phase5-deploy.md
 git commit -m "docs: phase 5 デプロイ成果物 plan に実装完了メモを追記"
 git push origin hack
 ```
+
+---
+
+## 実装完了メモ（2026-06-07）
+
+全 5 タスク完了。コミット: `73fe06b`（web Dockerfile）→ `c071b41`（compose caddy build 化）→ `3c16251`（移行 SQL）→ `7a8ae59`（SQL ガード強化）→ `a168277` + `89372d2`（手順書）→ `4ae6490`（grep パターン修正）。
+
+### 検証結果
+
+- web イメージ: docker build + file-server スモークで index.html 配信確認。compose フルスタックスモーク（`/` → SPA HTML、`/api/auth/me` → 401 JSON）も通過（ローカル port 8080 は無関係の bun プロセスが占有していたため 18080 で代替実施）
+- 移行 SQL: 旧スキーマ fixture でのリハーサルを implementer と spec reviewer が独立に実施し、データ検証・schema diff（`SCHEMA MATCH`）・ネガティブ 3 系統（非 admin 画像 / admin 不在 / keep_original 異常値）全部グリーン
+- `pnpm -r test`（129）/ typecheck / build 全緑
+
+### レビューで入った plan からの変更
+
+- 移行 SQL に fail-closed ガード 2 本追加（quality review 指摘採用）: cleanup 後の user がちょうど 1 行 / keep_original の value が 'true'・'false' 以外で中断
+- MIGRATION.md: `dropdb --force`、§7 pg_dump に `-T`、§4 実行コンテキスト明示、§5 dropdb 理由、想定外エラー時のロールバック補足
+- **最終レビュー（opus）が本物のバグを検出**: §7 の grep パターンが plan からの転記で backslash を 1 個落としており（`'^\(un)?restrict'`）、GNU grep では `\restrict` 行が除去されず正常移行でも `SCHEMA MATCH` が出ない状態だった。`'^\\(un)?restrict'` に修正（`4ae6490`）
+
+### 次にやること（実 CT 作業、手元では完了不能）
+
+`deploy/MIGRATION.md` に沿って: 新 CT 作成 → 空 DB スモーク → 旧 CT から pg_dump → restore → 移行 SQL 適用 + schema diff → 動作確認チェックリスト → NPM 切り替え → 様子見後に旧 CT 停止。Vikunja task #8（id=332）は CT 移行完了まで Done にしない。
