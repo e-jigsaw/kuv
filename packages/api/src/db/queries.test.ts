@@ -1,4 +1,4 @@
-import { apikey } from "@picsur/shared";
+import { apikey } from "@kuv/shared";
 import { afterAll, beforeAll, expect, test } from "vitest";
 import { seedAdmin, startTestDb, type TestDb } from "../test/db";
 import { getUserById, getUserByUsername, resolveApikey, updatePassword } from "./queries";

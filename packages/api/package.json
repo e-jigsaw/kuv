@@ -1,5 +1,5 @@
 {
-  "name": "@picsur/api",
+  "name": "@kuv/api",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -12,7 +12,7 @@
   },
   "dependencies": {
     "@hono/node-server": "^1.13.0",
-    "@picsur/shared": "workspace:*",
+    "@kuv/shared": "workspace:*",
     "bcrypt": "^5.1.1",
     "drizzle-orm": "^0.38.0",
     "file-type": "^19",

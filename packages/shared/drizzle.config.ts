@@ -5,11 +5,11 @@ export default defineConfig({
   schema: "./src/schema/index.ts",
   out: "./drizzle",
   dbCredentials: {
-    host: process.env.PICSUR_DB_HOST ?? "localhost",
-    port: Number(process.env.PICSUR_DB_PORT ?? 5432),
-    user: process.env.PICSUR_DB_USER ?? "picsur",
-    password: process.env.PICSUR_DB_PASSWORD ?? "picsur",
-    database: process.env.PICSUR_DB_DATABASE ?? "picsur",
+    host: process.env.KUV_DB_HOST ?? "localhost",
+    port: Number(process.env.KUV_DB_PORT ?? 5432),
+    user: process.env.KUV_DB_USER ?? "kuv",
+    password: process.env.KUV_DB_PASSWORD ?? "kuv",
+    database: process.env.KUV_DB_DATABASE ?? "kuv",
     ssl: false,
   },
 });

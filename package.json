@@ -1,5 +1,5 @@
 {
-  "name": "picsur",
+  "name": "kuv",
   "version": "0.6.0",
   "private": true,
   "type": "module",
@@ -11,8 +11,8 @@
     "build": "pnpm -r build",
     "test": "pnpm -r test",
     "typecheck": "pnpm -r typecheck",
-    "dev:api": "pnpm --filter @picsur/api dev",
-    "dev:web": "pnpm --filter @picsur/web dev"
+    "dev:api": "pnpm --filter @kuv/api dev",
+    "dev:web": "pnpm --filter @kuv/web dev"
   },
   "pnpm": {
     "onlyBuiltDependencies": ["bcrypt", "sharp"]

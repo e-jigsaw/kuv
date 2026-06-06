@@ -5,7 +5,7 @@ import {
   PostgreSqlContainer,
   type StartedPostgreSqlContainer,
 } from "@testcontainers/postgresql";
-import { user } from "@picsur/shared";
+import { user } from "@kuv/shared";
 import pg from "pg";
 import { createDb, type Db } from "../db";
 

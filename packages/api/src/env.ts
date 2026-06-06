@@ -12,13 +12,13 @@ function optional(name: string, fallback: string): string {
 }
 
 export const env = {
-  jwtSecret: () => required("PICSUR_JWT_SECRET"),
+  jwtSecret: () => required("KUV_JWT_SECRET"),
   port: () => Number(optional("PORT", "3001")),
   db: () => ({
-    host: optional("PICSUR_DB_HOST", "localhost"),
-    port: Number(optional("PICSUR_DB_PORT", "5432")),
-    user: optional("PICSUR_DB_USER", "picsur"),
-    password: optional("PICSUR_DB_PASSWORD", "picsur"),
-    database: optional("PICSUR_DB_DATABASE", "picsur"),
+    host: optional("KUV_DB_HOST", "localhost"),
+    port: Number(optional("KUV_DB_PORT", "5432")),
+    user: optional("KUV_DB_USER", "kuv"),
+    password: optional("KUV_DB_PASSWORD", "kuv"),
+    database: optional("KUV_DB_DATABASE", "kuv"),
   }),
 };

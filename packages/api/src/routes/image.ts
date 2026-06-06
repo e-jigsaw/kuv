@@ -1,4 +1,4 @@
-import { MIME_TO_EXT, type SupportedMime } from "@picsur/shared";
+import { MIME_TO_EXT, type SupportedMime } from "@kuv/shared";
 import { Hono } from "hono";
 import { requireAuth } from "../middleware/auth";
 import {

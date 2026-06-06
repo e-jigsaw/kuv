@@ -1,4 +1,4 @@
-import { apikey } from "@picsur/shared";
+import { apikey } from "@kuv/shared";
 import { and, desc, eq } from "drizzle-orm";
 import type { Db } from "../db";
 

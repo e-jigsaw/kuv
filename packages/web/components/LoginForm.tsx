@@ -24,7 +24,7 @@ export function LoginForm({ onLoggedIn }: { onLoggedIn: () => void }) {
 
   return (
     <form onSubmit={onSubmit} className="mx-auto mt-32 flex w-72 flex-col gap-4">
-      <h1 className="text-center text-2xl font-bold">Picsur</h1>
+      <h1 className="text-center text-2xl font-bold">kuv</h1>
       <label className="flex flex-col gap-1 text-sm">
         Username
         <input

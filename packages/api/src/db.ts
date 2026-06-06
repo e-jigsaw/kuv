@@ -5,7 +5,7 @@ import {
   imageFile,
   settings,
   user,
-} from "@picsur/shared";
+} from "@kuv/shared";
 import { drizzle } from "drizzle-orm/node-postgres";
 import pg from "pg";
 import { env } from "./env";

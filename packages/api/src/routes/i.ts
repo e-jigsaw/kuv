@@ -1,4 +1,4 @@
-import { EXT_TO_MIME, type SupportedMime } from "@picsur/shared";
+import { EXT_TO_MIME, type SupportedMime } from "@kuv/shared";
 import type { Context } from "hono";
 import { Hono } from "hono";
 import {

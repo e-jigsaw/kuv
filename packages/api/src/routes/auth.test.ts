@@ -1,4 +1,4 @@
-import { apikey } from "@picsur/shared";
+import { apikey } from "@kuv/shared";
 import type { Hono } from "hono";
 import { afterAll, beforeAll, expect, test } from "vitest";
 import { createApp } from "../app";
@@ -10,7 +10,7 @@ let tdb: TestDb;
 let app: Hono<AppBindings>;
 
 beforeAll(async () => {
-  process.env.PICSUR_JWT_SECRET = "test-secret";
+  process.env.KUV_JWT_SECRET = "test-secret";
   tdb = await startTestDb();
 
   const hash = await hashPassword("hunter2");
@@ -36,7 +36,7 @@ test("login with correct credentials sets a cookie and returns user", async () =
     body: JSON.stringify({ username: "admin", password: "hunter2" }),
   });
   expect(res.status).toBe(200);
-  expect(res.headers.get("set-cookie")).toContain("picsur_jwt=");
+  expect(res.headers.get("set-cookie")).toContain("kuv_jwt=");
   const json = (await res.json()) as { user: { username: string } };
   expect(json.user.username).toBe("admin");
 });

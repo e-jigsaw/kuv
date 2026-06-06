@@ -13,7 +13,7 @@ importers:
       '@hono/node-server':
         specifier: ^1.13.0
         version: 1.19.14(hono@4.12.23)
-      '@picsur/shared':
+      '@kuv/shared':
         specifier: workspace:*
         version: link:../shared
       bcrypt:
@@ -87,7 +87,7 @@ importers:
 
   packages/web:
     dependencies:
-      '@picsur/shared':
+      '@kuv/shared':
         specifier: workspace:*
         version: link:../shared
       react:

@@ -5,5 +5,5 @@ export default defineConfig({
   format: ["esm"],
   target: "node24",
   clean: true,
-  noExternal: [/@picsur\/shared/, /^hono/, /@hono\/node-server/],
+  noExternal: [/@kuv\/shared/, /^hono/, /@hono\/node-server/],
 });

@@ -1,4 +1,4 @@
-import { isSupportedMime, type SupportedMime } from "@picsur/shared";
+import { isSupportedMime, type SupportedMime } from "@kuv/shared";
 import { fileTypeFromBuffer } from "file-type";
 import sharp from "sharp";
 

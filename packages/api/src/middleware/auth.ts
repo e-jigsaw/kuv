@@ -5,7 +5,7 @@ import { getUserById, resolveApikey } from "../db/queries";
 import { env } from "../env";
 import type { AppBindings } from "../types";
 
-export const AUTH_COOKIE = "picsur_jwt";
+export const AUTH_COOKIE = "kuv_jwt";
 
 // JWT cookie か apikey(ヘッダ/クエリ)を解決して c.var.user を埋める。無効なら null。
 export const authMiddleware = createMiddleware<AppBindings>(async (c, next) => {

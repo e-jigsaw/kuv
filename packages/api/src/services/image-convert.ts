@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import type { SupportedMime } from "@picsur/shared";
+import type { SupportedMime } from "@kuv/shared";
 import sharp from "sharp";
 import { OUTPUT_FORMAT } from "./image-ingest";
 

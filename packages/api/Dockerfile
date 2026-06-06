@@ -6,11 +6,11 @@ COPY packages/shared/package.json packages/shared/
 COPY packages/api/package.json packages/api/
 # pnpm の --frozen-lockfile は workspace 全体の manifest を要求するため web の package.json も必要
 COPY packages/web/package.json packages/web/
-RUN pnpm install --frozen-lockfile --filter @picsur/api...
+RUN pnpm install --frozen-lockfile --filter @kuv/api...
 COPY tsconfig.base.json ./
 COPY packages/shared packages/shared
 COPY packages/api packages/api
-RUN pnpm --filter @picsur/api build
+RUN pnpm --filter @kuv/api build
 
 FROM node:24-alpine AS runtime
 WORKDIR /app

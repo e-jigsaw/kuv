@@ -2,11 +2,11 @@ services:
   postgres:
     image: postgres:17-alpine
     environment:
-      POSTGRES_DB: picsur
-      POSTGRES_USER: picsur
-      POSTGRES_PASSWORD: picsur
+      POSTGRES_DB: kuv
+      POSTGRES_USER: kuv
+      POSTGRES_PASSWORD: kuv
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U picsur -d picsur"]
+      test: ["CMD-SHELL", "pg_isready -U kuv -d kuv"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -19,11 +19,11 @@ services:
       dockerfile: packages/api/Dockerfile
     environment:
       PORT: 3001
-      PICSUR_JWT_SECRET: ${PICSUR_JWT_SECRET}
-      PICSUR_DB_HOST: postgres
-      PICSUR_DB_USER: picsur
-      PICSUR_DB_PASSWORD: picsur
-      PICSUR_DB_DATABASE: picsur
+      KUV_JWT_SECRET: ${KUV_JWT_SECRET}
+      KUV_DB_HOST: postgres
+      KUV_DB_USER: kuv
+      KUV_DB_PASSWORD: kuv
+      KUV_DB_DATABASE: kuv
     depends_on:
       postgres:
         condition: service_healthy
@@ -34,7 +34,7 @@ services:
       - "8080:80"
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile
-      # web は静的SPA。`pnpm --filter @picsur/web build` で生成した dist/client を bind-mount する。
+      # web は静的SPA。`pnpm --filter @kuv/web build` で生成した dist/client を bind-mount する。
       # `docker compose up` の前に web をビルドしておくこと。
       # （本番向けに web をイメージへ焼く self-contained 化は後続のデプロイ整備フェーズで対応）
       - ./packages/web/dist/client:/srv/web

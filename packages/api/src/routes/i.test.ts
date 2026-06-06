@@ -12,7 +12,7 @@ let app: Hono<AppBindings>;
 let cookie: string;
 
 beforeAll(async () => {
-  process.env.PICSUR_JWT_SECRET = "test-secret";
+  process.env.KUV_JWT_SECRET = "test-secret";
   tdb = await startTestDb();
   await seedAdmin(tdb.db, "admin", await hashPassword("hunter2"));
   app = createApp(tdb.db);

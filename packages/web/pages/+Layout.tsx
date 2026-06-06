@@ -17,7 +17,7 @@ function Header() {
   return (
     <header className="flex items-center gap-6 border-b border-neutral-800 px-6 py-3">
       <a href="/" className="text-lg font-bold">
-        Picsur
+        kuv
       </a>
       <nav className="flex flex-1 gap-4 text-sm text-neutral-400">
         <a href="/" className="hover:text-neutral-100">

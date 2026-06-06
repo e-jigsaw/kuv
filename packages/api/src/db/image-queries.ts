@@ -1,5 +1,5 @@
-import { image, imageDerivative, imageFile, settings } from "@picsur/shared";
-import type { ImageVariant } from "@picsur/shared";
+import { image, imageDerivative, imageFile, settings } from "@kuv/shared";
+import type { ImageVariant } from "@kuv/shared";
 import { and, desc, eq } from "drizzle-orm";
 import type { Db } from "../db";
 import type { IngestFile } from "../services/image-ingest";
