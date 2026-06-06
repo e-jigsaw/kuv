@@ -11,10 +11,11 @@ COPY tsconfig.base.json ./
 COPY packages/shared packages/shared
 COPY packages/api packages/api
 RUN pnpm --filter @kuv/api build
+RUN pnpm --filter @kuv/api deploy --prod --legacy /deploy
 
 FROM node:24-alpine AS runtime
 WORKDIR /app
-COPY --from=build /app/packages/api/dist ./dist
+COPY --from=build /deploy ./
 ENV NODE_ENV=production
 ENV PORT=3001
 EXPOSE 3001
