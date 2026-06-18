@@ -39,7 +39,7 @@ export function ImageView({
       />
       <div className="flex flex-col items-center gap-2 text-sm">
         <p className="font-medium">{image.file_name}</p>
-        <p className="text-neutral-500">
+        <p className="text-neutral-500" suppressHydrationWarning>
           {new Date(image.created).toLocaleString()}
         </p>
         <button
