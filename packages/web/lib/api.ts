@@ -41,8 +41,25 @@ export class UnauthorizedError extends Error {
   }
 }
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(path, init);
+// SSR（window 無し）では api コンテナへ絶対 URL、client では相対（Caddy 経由）。
+function resolveBase(): string {
+  if (typeof window !== "undefined") return "";
+  return process.env.KUV_API_BASE || "http://api:3001";
+}
+
+function withCookie(init: RequestInit | undefined, cookie: string): RequestInit {
+  const headers = new Headers(init?.headers);
+  headers.set("cookie", cookie);
+  return { ...init, headers };
+}
+
+async function request<T>(
+  path: string,
+  init?: RequestInit,
+  cookie?: string,
+): Promise<T> {
+  const finalInit = cookie ? withCookie(init, cookie) : init;
+  const res = await fetch(resolveBase() + path, finalInit);
   if (res.status === 401) throw new UnauthorizedError();
   if (!res.ok) {
     const body = (await res.json().catch(() => null)) as
@@ -53,8 +70,8 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return (await res.json()) as T;
 }
 
-export function apiGet<T>(path: string): Promise<T> {
-  return request<T>(path);
+export function apiGet<T>(path: string, cookie?: string): Promise<T> {
+  return request<T>(path, undefined, cookie);
 }
 
 export function apiPost<T>(path: string, body?: unknown): Promise<T> {

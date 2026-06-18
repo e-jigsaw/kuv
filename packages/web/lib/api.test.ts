@@ -6,6 +6,8 @@ vi.stubGlobal("fetch", fetchMock);
 
 afterEach(() => {
   fetchMock.mockReset();
+  // SSR テストが unstubAllGlobals() するので fetch スタブを貼り直す。
+  vi.stubGlobal("fetch", fetchMock);
 });
 
 function jsonResponse(body: unknown, status = 200): Response {
@@ -70,4 +72,32 @@ test("uploadImage posts multipart form data", async () => {
   expect(init.method).toBe("POST");
   expect(init.body).toBeInstanceOf(FormData);
   expect((init.body as FormData).get("file")).toBe(file);
+});
+
+test("SSR resolves an absolute base and forwards the cookie", async () => {
+  vi.stubGlobal("window", undefined);
+  vi.stubEnv("KUV_API_BASE", "http://api:3001");
+  fetchMock.mockResolvedValue(jsonResponse({ images: [] }));
+
+  await apiGet("/api/image/list", "kuv_jwt=abc");
+
+  const [url, init] = fetchMock.mock.calls[0]!;
+  expect(url).toBe("http://api:3001/api/image/list");
+  expect(new Headers(init.headers).get("cookie")).toBe("kuv_jwt=abc");
+
+  vi.unstubAllEnvs();
+  vi.unstubAllGlobals();
+});
+
+test("SSR falls back to http://api:3001 when KUV_API_BASE is unset", async () => {
+  vi.stubGlobal("window", undefined);
+  vi.stubEnv("KUV_API_BASE", "");
+  fetchMock.mockResolvedValue(jsonResponse({ ok: true }));
+
+  await apiGet("/api/settings");
+
+  expect(fetchMock.mock.calls[0]![0]).toBe("http://api:3001/api/settings");
+
+  vi.unstubAllEnvs();
+  vi.unstubAllGlobals();
 });
