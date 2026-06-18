@@ -167,6 +167,29 @@ export async function listImages(
     .orderBy(desc(image.created));
 }
 
+// 個別画像メタ（所有者一致）。SSR の +data 用に1件取得。
+export async function findImageForUser(
+  db: Db,
+  id: string,
+  userId: string,
+): Promise<ImageListEntry | null> {
+  const [row] = await db
+    .select({
+      id: image.id,
+      fileName: image.fileName,
+      created: image.created,
+      masterFiletype: imageFile.filetype,
+    })
+    .from(image)
+    .innerJoin(
+      imageFile,
+      and(eq(imageFile.imageId, image.id), eq(imageFile.variant, "master")),
+    )
+    .where(and(eq(image.id, id), eq(image.userId, userId)))
+    .limit(1);
+  return row ?? null;
+}
+
 // settings 単一行（id=1）を upsert
 export async function updateSettings(db: Db, s: Settings): Promise<void> {
   await db
