@@ -1,36 +1,18 @@
-import { useEffect, useState } from "react";
-import { apiDelete, apiGet } from "../lib/api";
+import { useState } from "react";
+import { apiDelete } from "../lib/api";
 import type { ImageEntry } from "../lib/api";
 
 export function ImageView({
-  id,
+  image,
   onDeleted,
 }: {
-  id: string;
+  image: ImageEntry;
   onDeleted: () => void;
 }) {
-  const [image, setImage] = useState<ImageEntry | null>(null);
-  const [loaded, setLoaded] = useState(false);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    void (async () => {
-      try {
-        const { images } = await apiGet<{ images: ImageEntry[] }>(
-          "/api/image/list",
-        );
-        setImage(images.find((im) => im.id === id) ?? null);
-      } catch {
-        setError("failed to load image");
-      } finally {
-        setLoaded(true);
-      }
-    })();
-  }, [id]);
-
   const onCopy = async () => {
-    if (!image) return;
     await navigator.clipboard.writeText(
       new URL(image.links.direct, window.location.origin).href,
     );
@@ -39,7 +21,6 @@ export function ImageView({
   };
 
   const onDelete = async () => {
-    if (!image) return;
     if (!confirm(`Delete ${image.file_name}?`)) return;
     try {
       await apiDelete(`/api/image/${image.id}`);
@@ -48,10 +29,6 @@ export function ImageView({
       setError("delete failed");
     }
   };
-
-  if (!loaded) return <main className="p-6 text-neutral-500">loading…</main>;
-  if (error) return <main className="p-6 text-red-400">{error}</main>;
-  if (!image) return <main className="p-6 text-neutral-500">image not found</main>;
 
   return (
     <main className="flex flex-col items-center gap-4 p-6">
@@ -80,6 +57,7 @@ export function ImageView({
         >
           Delete
         </button>
+        {error && <p className="text-red-400">{error}</p>}
       </div>
     </main>
   );

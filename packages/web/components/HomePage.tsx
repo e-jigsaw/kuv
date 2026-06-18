@@ -1,9 +1,9 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { apiGet, uploadImage } from "../lib/api";
 import type { ImageEntry } from "../lib/api";
 
-export function HomePage() {
-  const [images, setImages] = useState<ImageEntry[]>([]);
+export function HomePage({ initialImages }: { initialImages: ImageEntry[] }) {
+  const [images, setImages] = useState<ImageEntry[]>(initialImages);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -17,10 +17,6 @@ export function HomePage() {
       setError("failed to load images");
     }
   }, []);
-
-  useEffect(() => {
-    void reload();
-  }, [reload]);
 
   const onUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];

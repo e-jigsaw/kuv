@@ -1,9 +1,13 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { apiDelete, apiGet, apiPost } from "../lib/api";
 import type { ApikeyEntry } from "../lib/api";
 
-export function ApikeyManager() {
-  const [keys, setKeys] = useState<ApikeyEntry[]>([]);
+export function ApikeyManager({
+  initialKeys,
+}: {
+  initialKeys: ApikeyEntry[];
+}) {
+  const [keys, setKeys] = useState<ApikeyEntry[]>(initialKeys);
   const [error, setError] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
@@ -17,10 +21,6 @@ export function ApikeyManager() {
       setError("failed to load api keys");
     }
   }, []);
-
-  useEffect(() => {
-    void reload();
-  }, [reload]);
 
   const onIssue = async () => {
     setError(null);

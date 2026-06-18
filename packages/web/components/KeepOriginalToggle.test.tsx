@@ -10,23 +10,19 @@ afterEach(() => {
   fetchMock.mockReset();
 });
 
-test("loads the current setting and toggles it", async () => {
-  fetchMock
-    .mockResolvedValueOnce(
-      new Response(JSON.stringify({ keep_original: false }), { status: 200 }),
-    )
-    .mockResolvedValueOnce(
-      new Response(JSON.stringify({ keep_original: true }), { status: 200 }),
-    );
-  render(<KeepOriginalToggle />);
+test("renders the provided setting and toggles it", async () => {
+  fetchMock.mockResolvedValueOnce(
+    new Response(JSON.stringify({ keep_original: true }), { status: 200 }),
+  );
+  render(<KeepOriginalToggle initialKeepOriginal={false} />);
 
-  const checkbox = (await screen.findByRole("checkbox")) as HTMLInputElement;
+  const checkbox = screen.getByRole("checkbox") as HTMLInputElement;
   expect(checkbox.checked).toBe(false);
 
   fireEvent.click(checkbox);
   await waitFor(() => expect(checkbox.checked).toBe(true));
 
-  const [path, init] = fetchMock.mock.calls[1]!;
+  const [path, init] = fetchMock.mock.calls[0]!;
   expect(path).toBe("/api/settings");
   expect(init.method).toBe("PUT");
   expect(JSON.parse(init.body)).toEqual({ keep_original: true });

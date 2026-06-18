@@ -1,9 +1,9 @@
 import { navigate } from "vike/client/router";
-import { usePageContext } from "vike-react/usePageContext";
+import { useData } from "vike-react/useData";
 import { ImageView } from "../../../components/ImageView";
+import type { Data } from "./+data";
 
 export default function Page() {
-  const pageContext = usePageContext();
-  const id = pageContext.routeParams!.id!;
-  return <ImageView id={id} onDeleted={() => navigate("/")} />;
+  const { image } = useData<Data>();
+  return <ImageView image={image} onDeleted={() => navigate("/")} />;
 }
