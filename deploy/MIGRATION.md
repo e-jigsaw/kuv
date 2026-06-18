@@ -110,7 +110,7 @@ docker compose exec postgres dropdb -U kuv baseline
 docker compose start api
 ```
 
-- [ ] `http://<新CTホスト>:8080/` で SPA が開く
+- [ ] `http://<新CTホスト>:8080/` で SSR されたページが開く（未認証なら `/login` に飛ぶ）
 - [ ] 旧パスワードで admin ログインできる
 - [ ] 画像一覧に既存画像が出る・クリックして表示できる（`GET /i/<id>` が 200）
 - [ ] 既存の ShareX apikey でアップロードできる:
