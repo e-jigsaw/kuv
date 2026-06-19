@@ -116,6 +116,40 @@ ALTER TABLE "image_file" ADD CONSTRAINT "image_file_variant_check"
 DROP INDEX "IDX_9f7db4b32b0c34965ae32482fa";
 DROP INDEX "IDX_624c858cefb5429083b5c910fd";
 
+-- ------------------------------------------------------------
+-- 4a. variant 意味の差を吸収する
+-- ------------------------------------------------------------
+-- Picsur と kuv で image_file の variant 意味が異なる:
+--   Picsur: master = QOI ロスレス保管, original = 実アップロード画像
+--   kuv:    master = 配信用の supported 形式(png/jpeg/webp/gif), original = 生アップロード
+-- kuv の配信(/i)は master しか読まず、libvips は QOI を読めない。
+-- そこで「Picsur の original を kuv の master に昇格」する。
+
+-- MIME 表記を Picsur の 'image:xxx'（コロン）から kuv の 'image/xxx'（スラッシュ）へ。
+UPDATE "image_file" SET "filetype" = replace("filetype", 'image:', 'image/');
+
+-- original を持つ画像については QOI master を捨てる（後で original 由来の master を作る）。
+-- original を持たない画像（QOI master のみ）の QOI は残す → 移行後に別途 PNG 救出する。
+DELETE FROM "image_file" m
+WHERE m."variant" = 'master'
+  AND m."filetype" = 'image/qoi'
+  AND EXISTS (
+    SELECT 1 FROM "image_file" o
+    WHERE o."image_id" = m."image_id" AND o."variant" = 'original'
+  );
+
+-- original を master として複製（配信用）。original 行は keep_original 用に残す。
+INSERT INTO "image_file" ("id", "image_id", "variant", "filetype", "data")
+SELECT gen_random_uuid(), "image_id", 'master', "filetype", "data"
+FROM "image_file" WHERE "variant" = 'original';
+
+-- file 行が 1 つも無い画像（Picsur 側で実体が消えた reject 残骸）は配信不能なので削除。
+-- QOI master のみの画像は master 行が残るので、ここでは消えない（救出対象として残す）。
+DELETE FROM "image" i
+WHERE NOT EXISTS (
+  SELECT 1 FROM "image_file" f WHERE f."image_id" = i."id"
+);
+
 -- ============================================================
 -- 5. image_derivative（key 規約が非互換なので中身は捨てる。再生成可能）
 -- ============================================================
