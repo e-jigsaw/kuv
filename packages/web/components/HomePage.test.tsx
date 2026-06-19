@@ -22,25 +22,15 @@ const listResponse = {
   ],
 };
 
-test("renders the image list from the api", async () => {
-  fetchMock.mockImplementation(() =>
-    Promise.resolve(new Response(JSON.stringify(listResponse), { status: 200 })),
-  );
-  render(<HomePage />);
-
-  await waitFor(() => expect(screen.getByAltText("cat.png")).toBeDefined());
+test("renders the provided initial images", () => {
+  render(<HomePage initialImages={listResponse.images} />);
   const img = screen.getByAltText("cat.png") as HTMLImageElement;
   expect(img.src).toContain("/i/img1");
-  // 一覧 API が呼ばれた
-  expect(fetchMock.mock.calls[0]![0]).toBe("/api/image/list");
 });
 
 test("uploads a selected file and refreshes the list", async () => {
-  // 1回目: 初期一覧（空）/ 2回目: アップロード / 3回目: 再取得一覧
+  // 1回目: アップロード / 2回目: 再取得一覧
   fetchMock
-    .mockResolvedValueOnce(
-      new Response(JSON.stringify({ images: [] }), { status: 200 }),
-    )
     .mockResolvedValueOnce(
       new Response(
         JSON.stringify({
@@ -55,18 +45,16 @@ test("uploads a selected file and refreshes the list", async () => {
       new Response(JSON.stringify(listResponse), { status: 200 }),
     );
 
-  render(<HomePage />);
-  await waitFor(() => expect(fetchMock).toHaveBeenCalled());
+  render(<HomePage initialImages={[]} />);
 
-  const file = new File([new Uint8Array([1])], "cat.png", {
-    type: "image/png",
-  });
+  const file = new File([new Uint8Array([1])], "cat.png", { type: "image/png" });
   const input = screen.getByLabelText("Upload") as HTMLInputElement;
   fireEvent.change(input, { target: { files: [file] } });
 
   await waitFor(() => expect(screen.getByAltText("cat.png")).toBeDefined());
-  // 2回目の呼び出しが multipart アップロード
-  const [path, init] = fetchMock.mock.calls[1]!;
-  expect(path).toBe("/api/image");
-  expect(init.body).toBeInstanceOf(FormData);
+  // 1回目の呼び出しが multipart アップロード、2回目が一覧再取得
+  const [uploadPath, uploadInit] = fetchMock.mock.calls[0]!;
+  expect(uploadPath).toBe("/api/image");
+  expect(uploadInit.body).toBeInstanceOf(FormData);
+  expect(fetchMock.mock.calls[1]![0]).toBe("/api/image/list");
 });

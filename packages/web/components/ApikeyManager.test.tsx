@@ -21,9 +21,6 @@ const key1 = {
 test("lists keys and issues a new one", async () => {
   fetchMock
     .mockResolvedValueOnce(
-      new Response(JSON.stringify({ apikeys: [key1] }), { status: 200 }),
-    )
-    .mockResolvedValueOnce(
       new Response(JSON.stringify({ apikey: { ...key1, id: "k2", name: "new" } }), {
         status: 200,
       }),
@@ -34,21 +31,18 @@ test("lists keys and issues a new one", async () => {
         { status: 200 },
       ),
     );
-  render(<ApikeyManager />);
+  render(<ApikeyManager initialKeys={[key1]} />);
 
-  await waitFor(() => expect(screen.getByText("sharex")).toBeDefined());
+  expect(screen.getByText("sharex")).toBeDefined();
 
   fireEvent.click(screen.getByRole("button", { name: "New key" }));
   await waitFor(() => expect(screen.getByText("new")).toBeDefined());
-  expect(fetchMock.mock.calls[1]![0]).toBe("/api/apikey");
-  expect(fetchMock.mock.calls[1]![1].method).toBe("POST");
+  expect(fetchMock.mock.calls[0]![0]).toBe("/api/apikey");
+  expect(fetchMock.mock.calls[0]![1].method).toBe("POST");
 });
 
 test("revokes a key after confirmation", async () => {
   fetchMock
-    .mockResolvedValueOnce(
-      new Response(JSON.stringify({ apikeys: [key1] }), { status: 200 }),
-    )
     .mockResolvedValueOnce(
       new Response(JSON.stringify({ ok: true }), { status: 200 }),
     )
@@ -56,12 +50,12 @@ test("revokes a key after confirmation", async () => {
       new Response(JSON.stringify({ apikeys: [] }), { status: 200 }),
     );
   vi.stubGlobal("confirm", vi.fn().mockReturnValue(true));
-  render(<ApikeyManager />);
+  render(<ApikeyManager initialKeys={[key1]} />);
 
-  await waitFor(() => expect(screen.getByText("sharex")).toBeDefined());
+  expect(screen.getByText("sharex")).toBeDefined();
   fireEvent.click(screen.getByRole("button", { name: "Revoke" }));
 
   await waitFor(() => expect(screen.queryByText("sharex")).toBeNull());
-  expect(fetchMock.mock.calls[1]![0]).toBe("/api/apikey/k1");
-  expect(fetchMock.mock.calls[1]![1].method).toBe("DELETE");
+  expect(fetchMock.mock.calls[0]![0]).toBe("/api/apikey/k1");
+  expect(fetchMock.mock.calls[0]![1].method).toBe("DELETE");
 });

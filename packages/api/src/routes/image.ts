@@ -4,6 +4,7 @@ import { requireAuth } from "../middleware/auth";
 import {
   deleteImage,
   findImageById,
+  findImageForUser,
   getSettings,
   insertImage,
   listImages,
@@ -29,6 +30,21 @@ imageRoutes.get("/list", requireAuth, async (c) => {
       master_filetype: r.masterFiletype,
       links: links(r.id, r.masterFiletype),
     })),
+  });
+});
+
+// 個別画像メタ（要認証・所有者一致）。SSR の +data 用。
+// 注: GET "/list" より後に登録すること（"/list" を ":id" にマッチさせないため）
+imageRoutes.get("/:id", requireAuth, async (c) => {
+  const id = c.req.param("id");
+  const row = await findImageForUser(c.var.db, id, c.var.user!.id);
+  if (!row) return c.json({ error: "not found" }, 404);
+  return c.json({
+    id: row.id,
+    file_name: row.fileName,
+    created: row.created,
+    master_filetype: row.masterFiletype,
+    links: links(row.id, row.masterFiletype),
   });
 });
 

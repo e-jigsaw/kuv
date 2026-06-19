@@ -11,7 +11,12 @@ COPY tsconfig.base.json ./
 COPY packages/shared packages/shared
 COPY packages/web packages/web
 RUN pnpm --filter @kuv/web build
+RUN pnpm --filter @kuv/web deploy --prod --legacy /deploy
 
-FROM caddy:2-alpine
-# Caddyfile は compose で bind-mount する（設定変更でリビルドしないため）
-COPY --from=build /app/packages/web/dist/client /srv/web
+FROM node:24-alpine AS runtime
+WORKDIR /app
+COPY --from=build /deploy ./
+ENV NODE_ENV=production
+ENV PORT=3000
+EXPOSE 3000
+CMD ["node", "server/index.ts"]

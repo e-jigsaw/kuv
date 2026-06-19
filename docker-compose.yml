@@ -28,16 +28,25 @@ services:
       postgres:
         condition: service_healthy
 
-  caddy:
+  web:
     build:
       context: .
       dockerfile: packages/web/Dockerfile
+    environment:
+      PORT: 3000
+      KUV_API_BASE: http://api:3001
+    depends_on:
+      - api
+
+  caddy:
+    image: caddy:2-alpine
     ports:
       - "8080:80"
     volumes:
       # Caddyfile だけは bind-mount（設定変更でイメージ再ビルドしないため）
       - ./Caddyfile:/etc/caddy/Caddyfile
     depends_on:
+      - web
       - api
 
 volumes:

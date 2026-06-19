@@ -30,16 +30,18 @@ compose 内で完結している（すべて `kuv`、外部非公開）ので設
 
 ## 3. 新スタックの起動確認（空 DB でのスモーク）
 
+compose は postgres / api / web / caddy の 4 サービス（web は SSR を行う Node プロセス、caddy は web へのリバースプロキシ）。
+
 ```bash
 docker compose up -d --build
 # スキーマ適用（migration runner は無いので psql で直接）
 docker compose exec -T postgres psql -U kuv -d kuv -v ON_ERROR_STOP=1 \
   < packages/shared/drizzle/0000_nostalgic_baron_zemo.sql
-curl -sf http://localhost:8080/ | head -3        # SPA の HTML が返る
-curl -s  http://localhost:8080/api/auth/me       # 401 JSON が返る
+curl -sf http://localhost:8080/login | head -3   # SSR された HTML が返る
+curl -s  http://localhost:8080/api/auth/me        # 401 JSON が返る
 ```
 
-両方返れば caddy / api / postgres の配線は正常。
+両方返れば caddy / web / api / postgres の配線は正常。
 
 ## 4. 旧 CT から pg_dump を取得（読み取りのみ）
 
@@ -108,7 +110,7 @@ docker compose exec postgres dropdb -U kuv baseline
 docker compose start api
 ```
 
-- [ ] `http://<新CTホスト>:8080/` で SPA が開く
+- [ ] `http://<新CTホスト>:8080/` で SSR されたページが開く（未認証なら `/login` に飛ぶ）
 - [ ] 旧パスワードで admin ログインできる
 - [ ] 画像一覧に既存画像が出る・クリックして表示できる（`GET /i/<id>` が 200）
 - [ ] 既存の ShareX apikey でアップロードできる:

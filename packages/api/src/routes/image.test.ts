@@ -227,3 +227,46 @@ test("upload stores original too when keep_original is on", async () => {
     await tdb.db.delete(settings);
   }
 });
+
+test("get one without auth returns 401", async () => {
+  const res = await app.request("/api/image/whatever");
+  expect(res.status).toBe(401);
+});
+
+test("get one returns meta for an own image", async () => {
+  const buf = await sharp({
+    create: { width: 8, height: 8, channels: 3, background: { r: 7, g: 8, b: 9 } },
+  })
+    .png()
+    .toBuffer();
+  const up = await app.request("/api/image", {
+    method: "POST",
+    headers: { Cookie: cookie },
+    body: form(buf, "meta.png", "image/png"),
+  });
+  const { id } = (await up.json()) as { id: string };
+
+  const res = await app.request(`/api/image/${id}`, {
+    headers: { Cookie: cookie },
+  });
+  expect(res.status).toBe(200);
+  const json = (await res.json()) as {
+    id: string;
+    file_name: string;
+    created: string;
+    master_filetype: string;
+    links: { view: string; direct: string };
+  };
+  expect(json.id).toBe(id);
+  expect(json.file_name).toBe("meta.png");
+  expect(json.master_filetype).toBe("image/png");
+  expect(json.links.direct).toBe(`/i/${id}.png`);
+  expect(typeof json.created).toBe("string");
+});
+
+test("get one returns 404 for an unknown id", async () => {
+  const res = await app.request("/api/image/does-not-exist", {
+    headers: { Cookie: cookie },
+  });
+  expect(res.status).toBe(404);
+});

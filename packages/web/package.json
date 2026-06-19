@@ -7,11 +7,14 @@
     "dev": "vite",
     "build": "vike build",
     "preview": "vike preview",
+    "start": "node server/index.ts",
     "test": "vitest run",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
+    "@hono/node-server": "^1.13.0",
     "@kuv/shared": "workspace:*",
+    "hono": "^4.6.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "vike": "^0.4.0",
@@ -20,6 +23,7 @@
   "devDependencies": {
     "@tailwindcss/vite": "^4.0.0",
     "@testing-library/react": "^16.3.2",
+    "@types/node": "^24.0.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "^5.1.0",
