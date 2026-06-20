@@ -149,18 +149,13 @@ test("list without auth returns 401", async () => {
   expect(res.status).toBe(401);
 });
 
-test("list returns own images newest first with links", async () => {
-  // 一意な画像を 2 枚アップロード
+test("list returns paginated images with total/page/pageSize", async () => {
   const buf1 = await sharp({
-    create: { width: 8, height: 8, channels: 3, background: { r: 10, g: 20, b: 30 } },
-  })
-    .png()
-    .toBuffer();
+    create: { width: 8, height: 8, channels: 3, background: { r: 11, g: 21, b: 31 } },
+  }).png().toBuffer();
   const buf2 = await sharp({
-    create: { width: 8, height: 8, channels: 3, background: { r: 40, g: 50, b: 60 } },
-  })
-    .webp()
-    .toBuffer();
+    create: { width: 8, height: 8, channels: 3, background: { r: 41, g: 51, b: 61 } },
+  }).webp().toBuffer();
 
   const up1 = await app.request("/api/image", {
     method: "POST",
@@ -175,31 +170,40 @@ test("list returns own images newest first with links", async () => {
   });
   const { id: id2 } = (await up2.json()) as { id: string };
 
-  const res = await app.request("/api/image/list", {
-    headers: { Cookie: cookie },
-  });
+  const res = await app.request("/api/image/list", { headers: { Cookie: cookie } });
   expect(res.status).toBe(200);
-  const { images } = (await res.json()) as {
-    images: Array<{
-      id: string;
-      file_name: string;
-      created: string;
-      master_filetype: string;
-      links: { view: string; direct: string };
-    }>;
+  const body = (await res.json()) as {
+    images: Array<{ id: string; file_name: string; master_filetype: string; links: { direct: string } }>;
+    total: number;
+    page: number;
+    pageSize: number;
   };
 
-  // このテストで上げた 2 枚が新しい順に並ぶ（他テストの画像も混ざるので相対順で見る)
-  const i1 = images.findIndex((im) => im.id === id1);
-  const i2 = images.findIndex((im) => im.id === id2);
+  expect(body.page).toBe(1);
+  expect(body.pageSize).toBe(24);
+  expect(body.total).toBeGreaterThanOrEqual(2);
+
+  const i1 = body.images.findIndex((im) => im.id === id1);
+  const i2 = body.images.findIndex((im) => im.id === id2);
   expect(i1).toBeGreaterThanOrEqual(0);
   expect(i2).toBeGreaterThanOrEqual(0);
-  expect(i2).toBeLessThan(i1); // 後から上げた id2 が先頭側
+  expect(i2).toBeLessThan(i1);
+  expect(body.images[i2]!.master_filetype).toBe("image/webp");
+  expect(body.images[i2]!.links.direct).toBe(`/i/${id2}.webp`);
+});
 
-  const im2 = images[i2]!;
-  expect(im2.file_name).toBe("second.webp");
-  expect(im2.master_filetype).toBe("image/webp");
-  expect(im2.links.direct).toBe(`/i/${id2}.webp`);
+test("list clamps a bogus page to 1", async () => {
+  const res = await app.request("/api/image/list?page=-3", { headers: { Cookie: cookie } });
+  const body = (await res.json()) as { page: number };
+  expect(body.page).toBe(1);
+});
+
+test("list page past the end returns empty images with full total", async () => {
+  const res = await app.request("/api/image/list?page=9999", { headers: { Cookie: cookie } });
+  const body = (await res.json()) as { images: unknown[]; total: number; page: number };
+  expect(body.page).toBe(9999);
+  expect(body.images).toEqual([]);
+  expect(body.total).toBeGreaterThanOrEqual(0);
 });
 
 test("upload stores original too when keep_original is on", async () => {
