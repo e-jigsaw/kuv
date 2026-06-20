@@ -28,3 +28,6 @@ export const EXT_TO_MIME: Record<string, SupportedMime> = {
   webp: "image/webp",
   gif: "image/gif",
 };
+
+// 画像一覧 1 ページの件数（api route と web が共用）
+export const PAGE_SIZE = 24;
