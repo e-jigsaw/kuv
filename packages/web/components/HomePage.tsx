@@ -1,22 +1,13 @@
-import { useCallback, useState } from "react";
-import { apiGet, uploadImage } from "../lib/api";
-import type { ImageEntry } from "../lib/api";
+import { useState } from "react";
+import { navigate } from "vike/client/router";
+import { uploadImage } from "../lib/api";
+import type { ImageListPage } from "../lib/api";
 
-export function HomePage({ initialImages }: { initialImages: ImageEntry[] }) {
-  const [images, setImages] = useState<ImageEntry[]>(initialImages);
+export function HomePage({ data }: { data: ImageListPage }) {
+  const { images, total, page, pageSize } = data;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-
-  const reload = useCallback(async () => {
-    try {
-      const { images } = await apiGet<{ images: ImageEntry[] }>(
-        "/api/image/list",
-      );
-      setImages(images);
-    } catch {
-      setError("failed to load images");
-    }
-  }, []);
 
   const onUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -25,7 +16,8 @@ export function HomePage({ initialImages }: { initialImages: ImageEntry[] }) {
     setError(null);
     try {
       await uploadImage(file);
-      await reload();
+      // 最新が先頭に来るので 1 ページ目へ。navigate が +data を再実行する。
+      await navigate("/?page=1");
     } catch {
       setError("upload failed");
     } finally {
@@ -71,8 +63,27 @@ export function HomePage({ initialImages }: { initialImages: ImageEntry[] }) {
           </a>
         ))}
       </div>
-      {images.length === 0 && !error && (
-        <p className="text-sm text-neutral-500">No images yet.</p>
+
+      {total === 0 && <p className="text-sm text-neutral-500">No images yet.</p>}
+
+      {total > 0 && (
+        <nav className="mt-6 flex items-center justify-center gap-4 text-sm">
+          {page > 1 ? (
+            <a href={`/?page=${page - 1}`} className="rounded border border-neutral-700 px-3 py-1 hover:bg-neutral-800">
+              Prev
+            </a>
+          ) : (
+            <span className="rounded border border-neutral-800 px-3 py-1 text-neutral-600">Prev</span>
+          )}
+          <span className="text-neutral-400">page {page} / {totalPages}</span>
+          {page < totalPages ? (
+            <a href={`/?page=${page + 1}`} className="rounded border border-neutral-700 px-3 py-1 hover:bg-neutral-800">
+              Next
+            </a>
+          ) : (
+            <span className="rounded border border-neutral-800 px-3 py-1 text-neutral-600">Next</span>
+          )}
+        </nav>
       )}
     </main>
   );

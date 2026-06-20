@@ -3,6 +3,6 @@ import { HomePage } from "../../components/HomePage";
 import type { Data } from "./+data";
 
 export default function Page() {
-  const { images } = useData<Data>();
-  return <HomePage initialImages={images} />;
+  const data = useData<Data>();
+  return <HomePage data={data} />;
 }
