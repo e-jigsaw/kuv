@@ -24,19 +24,38 @@ afterEach(() => {
   vi.mocked(redirect).mockClear();
 });
 
-test("returns images and forwards the cookie", async () => {
-  apiGetMock.mockResolvedValue({ images: [{ id: "x" }] } as never);
-  const ctx = { headers: { cookie: "kuv_jwt=abc" } } as never;
+test("forwards page from urlParsed and returns the page payload", async () => {
+  apiGetMock.mockResolvedValue({
+    images: [{ id: "x" }],
+    total: 50,
+    page: 2,
+    pageSize: 24,
+  } as never);
+  const ctx = {
+    headers: { cookie: "kuv_jwt=abc" },
+    urlParsed: { search: { page: "2" } },
+  } as never;
 
   const result = await data(ctx);
 
+  expect(result.page).toBe(2);
+  expect(result.total).toBe(50);
   expect(result.images).toHaveLength(1);
-  expect(apiGetMock).toHaveBeenCalledWith("/api/image/list", "kuv_jwt=abc");
+  expect(apiGetMock).toHaveBeenCalledWith("/api/image/list?page=2", "kuv_jwt=abc");
+});
+
+test("defaults to page 1 when no page param", async () => {
+  apiGetMock.mockResolvedValue({ images: [], total: 0, page: 1, pageSize: 24 } as never);
+  const ctx = { headers: {}, urlParsed: { search: {} } } as never;
+
+  await data(ctx);
+
+  expect(apiGetMock).toHaveBeenCalledWith("/api/image/list?page=1", undefined);
 });
 
 test("redirects to /login on Unauthorized", async () => {
   apiGetMock.mockRejectedValue(new UnauthorizedError());
-  const ctx = { headers: {} } as never;
+  const ctx = { headers: {}, urlParsed: { search: {} } } as never;
 
   await expect(data(ctx)).rejects.toThrow("__redirect__:/login");
   expect(redirect).toHaveBeenCalledWith("/login");

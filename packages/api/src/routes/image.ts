@@ -1,4 +1,4 @@
-import { MIME_TO_EXT, type SupportedMime } from "@kuv/shared";
+import { MIME_TO_EXT, PAGE_SIZE, type SupportedMime } from "@kuv/shared";
 import { Hono } from "hono";
 import { requireAuth } from "../middleware/auth";
 import {
@@ -19,9 +19,16 @@ function links(id: string, mime: string) {
   return { view: `/i/${id}`, direct: `/i/${id}.${ext}` };
 }
 
-// 自分の画像一覧（要認証）。created desc 全件
+// 自分の画像一覧（要認証）。created desc・ページ番号 + オフセット。
+// page は 1 始まり、不正値・未指定は 1 に丸める。
 imageRoutes.get("/list", requireAuth, async (c) => {
-  const rows = await listImages(c.var.db, c.var.user!.id);
+  const parsed = Number.parseInt(c.req.query("page") ?? "", 10);
+  const page = Number.isFinite(parsed) && parsed >= 1 ? parsed : 1;
+  const offset = (page - 1) * PAGE_SIZE;
+  const { rows, total } = await listImages(c.var.db, c.var.user!.id, {
+    limit: PAGE_SIZE,
+    offset,
+  });
   return c.json({
     images: rows.map((r) => ({
       id: r.id,
@@ -30,6 +37,9 @@ imageRoutes.get("/list", requireAuth, async (c) => {
       master_filetype: r.masterFiletype,
       links: links(r.id, r.masterFiletype),
     })),
+    total,
+    page,
+    pageSize: PAGE_SIZE,
   });
 });
 

@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { IMAGE_VARIANTS, SUPPORTED_MIMES, isSupportedMime, MIME_TO_EXT, EXT_TO_MIME } from "./constants";
+import { IMAGE_VARIANTS, SUPPORTED_MIMES, isSupportedMime, MIME_TO_EXT, EXT_TO_MIME, PAGE_SIZE } from "./constants";
 
 test("IMAGE_VARIANTS lists master and original", () => {
   expect(IMAGE_VARIANTS).toEqual(["master", "original"]);
@@ -43,4 +43,8 @@ test("MIME_TO_EXT and EXT_TO_MIME round-trip for every supported mime", () => {
   for (const mime of SUPPORTED_MIMES) {
     expect(EXT_TO_MIME[MIME_TO_EXT[mime]]).toBe(mime);
   }
+});
+
+test("PAGE_SIZE is 24", () => {
+  expect(PAGE_SIZE).toBe(24);
 });
