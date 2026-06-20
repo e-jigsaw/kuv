@@ -12,6 +12,13 @@ export interface ImageEntry {
   links: ImageLinks;
 }
 
+export interface ImageListPage {
+  images: ImageEntry[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
 export interface ApikeyEntry {
   id: string;
   name: string;
