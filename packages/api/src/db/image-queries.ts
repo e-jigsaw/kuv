@@ -1,6 +1,6 @@
 import { image, imageDerivative, imageFile, settings } from "@kuv/shared";
 import type { ImageVariant } from "@kuv/shared";
-import { and, desc, eq } from "drizzle-orm";
+import { and, count, desc, eq } from "drizzle-orm";
 import type { Db } from "../db";
 import type { IngestFile } from "../services/image-ingest";
 
@@ -146,12 +146,19 @@ export interface ImageListEntry {
   masterFiletype: string;
 }
 
-// 自分の画像一覧（created desc 全件 — 自家用なのでページングは YAGNI）
+export interface ListImagesResult {
+  rows: ImageListEntry[];
+  total: number;
+}
+
+// 自分の画像一覧（created desc）。limit/offset でページングし、総件数も返す。
+// rows と count は別クエリ（offset が total を超える空ページでも total を取るため）。
 export async function listImages(
   db: Db,
   userId: string,
-): Promise<ImageListEntry[]> {
-  return db
+  opts: { limit: number; offset: number },
+): Promise<ListImagesResult> {
+  const rows = await db
     .select({
       id: image.id,
       fileName: image.fileName,
@@ -164,7 +171,16 @@ export async function listImages(
       and(eq(imageFile.imageId, image.id), eq(imageFile.variant, "master")),
     )
     .where(eq(image.userId, userId))
-    .orderBy(desc(image.created));
+    .orderBy(desc(image.created))
+    .limit(opts.limit)
+    .offset(opts.offset);
+
+  const [totalRow] = await db
+    .select({ total: count() })
+    .from(image)
+    .where(eq(image.userId, userId));
+
+  return { rows, total: totalRow?.total ?? 0 };
 }
 
 // 個別画像メタ（所有者一致）。SSR の +data 用に1件取得。

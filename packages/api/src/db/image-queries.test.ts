@@ -150,34 +150,48 @@ test("insertDerivative ignores a duplicate (image_id, key)", async () => {
   expect(Buffer.compare(Buffer.from(d!.data), Buffer.from([1]))).toBe(0);
 });
 
-test("listImages returns own images newest first with master filetype", async () => {
-  await insertImage(
-    t.db,
-    { id: "list-1", userId: adminId, fileName: "one.png" },
-    { filetype: "image/png", data: Buffer.from([1]) },
-  );
-  // created の差を作る
-  await new Promise((r) => setTimeout(r, 20));
-  await insertImage(
-    t.db,
-    { id: "list-2", userId: adminId, fileName: "two.webp" },
-    { filetype: "image/webp", data: Buffer.from([2]) },
-  );
+test("listImages paginates newest first and returns total", async () => {
+  // 専用ユーザーで 3 枚（created の差を作る）
+  const uid = await seedAdmin(t.db, "pager", "hash");
+  for (const n of ["p1", "p2", "p3"]) {
+    await insertImage(
+      t.db,
+      { id: n, userId: uid, fileName: `${n}.png` },
+      { filetype: "image/png", data: Buffer.from([1]) },
+    );
+    await new Promise((r) => setTimeout(r, 10));
+  }
 
-  const rows = await listImages(t.db, adminId);
-  const listed = rows.filter((r) => r.id.startsWith("list-"));
-  expect(listed.map((r) => r.id)).toEqual(["list-2", "list-1"]);
-  expect(listed[0]).toMatchObject({
-    id: "list-2",
-    fileName: "two.webp",
-    masterFiletype: "image/webp",
-  });
-  expect(listed[0]!.created).toBeInstanceOf(Date);
+  const page1 = await listImages(t.db, uid, { limit: 2, offset: 0 });
+  expect(page1.total).toBe(3);
+  expect(page1.rows.map((r) => r.id)).toEqual(["p3", "p2"]);
+  expect(page1.rows[0]).toMatchObject({ fileName: "p3.png", masterFiletype: "image/png" });
+  expect(page1.rows[0]!.created).toBeInstanceOf(Date);
+
+  const page2 = await listImages(t.db, uid, { limit: 2, offset: 2 });
+  expect(page2.total).toBe(3);
+  expect(page2.rows.map((r) => r.id)).toEqual(["p1"]);
 });
 
-test("listImages returns empty array for a user with no images", async () => {
-  const rows = await listImages(t.db, "00000000-0000-0000-0000-000000000000");
-  expect(rows).toEqual([]);
+test("listImages returns empty rows with correct total past the end", async () => {
+  const uid = await seedAdmin(t.db, "pager2", "hash");
+  await insertImage(
+    t.db,
+    { id: "q1", userId: uid, fileName: "q1.png" },
+    { filetype: "image/png", data: Buffer.from([1]) },
+  );
+  const beyond = await listImages(t.db, uid, { limit: 24, offset: 24 });
+  expect(beyond.rows).toEqual([]);
+  expect(beyond.total).toBe(1);
+});
+
+test("listImages returns empty rows and total 0 for a user with no images", async () => {
+  const res = await listImages(t.db, "00000000-0000-0000-0000-000000000000", {
+    limit: 24,
+    offset: 0,
+  });
+  expect(res.rows).toEqual([]);
+  expect(res.total).toBe(0);
 });
 
 test("updateSettings upserts the single settings row", async () => {
