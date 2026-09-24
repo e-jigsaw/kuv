@@ -1,14 +1,14 @@
 # kuv
 
-Self-hosted image host。Imgur と Pastebin のあいのこ。
+Self-hosted image host
 
-[Picsur](https://github.com/CaramelFur/Picsur) の fork を Hono + Drizzle + Vike で全面的に書き直したもの（旧名 Picsur、2026-06 に改名）。
+Forked from [Picsur](https://github.com/CaramelFur/Picsur)
 
 ## Stack
 
 - **API**: Hono + Drizzle ORM (Node 24)
 - **Web**: Vike + React SPA + Tailwind CSS
-- **DB**: Postgres（画像バイナリも DB に格納）
+- **DB**: Postgres
 - **Deploy**: docker-compose（Caddy + api + postgres）
 - **Tooling**: mise + pnpm workspace
 
@@ -17,12 +17,12 @@ Self-hosted image host。Imgur と Pastebin のあいのこ。
 ```bash
 mise install                    # Node 24 / pnpm
 pnpm install
-docker compose up -d postgres   # 開発用 DB
+docker compose up -d postgres
 pnpm dev:api                    # Hono API (tsx watch)
 pnpm dev:web                    # Vike dev server
 ```
 
-テスト・型チェック・ビルド:
+test, typecheck, build:
 
 ```bash
 pnpm test
@@ -32,7 +32,7 @@ pnpm build
 
 ## Environment
 
-| 変数 | 必須 | デフォルト |
+| name | required | default |
 |---|---|---|
 | `KUV_JWT_SECRET` | ✓ | — |
 | `KUV_DB_HOST` | | `localhost` |
@@ -47,4 +47,4 @@ pnpm build
 
 ## License
 
-AGPL-3.0（upstream Picsur 由来）
+AGPL-3.0
