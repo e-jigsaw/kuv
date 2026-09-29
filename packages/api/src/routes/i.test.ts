@@ -1,6 +1,7 @@
 import type { Hono } from "hono";
 import sharp from "sharp";
-import { afterAll, beforeAll, expect, test } from "vitest";
+import { createHash } from "node:crypto";
+import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { createApp } from "../app";
 import { hashPassword } from "../auth/password";
 import { fixture } from "../test/fixtures";
@@ -170,4 +171,85 @@ test("empty extension (/i/<id>.) returns 404", async () => {
 test("multiple dots resolve to an unknown extension and return 404", async () => {
   const res = await app.request("/i/a.b.c", { headers: { Cookie: cookie } });
   expect(res.status).toBe(404);
+});
+
+describe("variant=original", () => {
+  async function setKeepOriginal(on: boolean) {
+    const res = await app.request("/api/settings", {
+      method: "PUT",
+      headers: { Cookie: cookie, "content-type": "application/json" },
+      body: JSON.stringify({ keep_original: on }),
+    });
+    expect(res.status).toBe(200);
+  }
+
+  // 他テストで上げた fixture と dedupe されないよう、テストごとに固有の画像を作る
+  function uniqueImage(format: "webp" | "gif", seed: number): Promise<Buffer> {
+    return sharp({
+      create: { width: 4, height: 4, channels: 3, background: { r: seed, g: 7, b: 9 } },
+    })
+      .toFormat(format)
+      .toBuffer();
+  }
+
+  test("serves the stored original bytes (sha256 == id)", async () => {
+    await setKeepOriginal(true);
+    const id = await upload(await uniqueImage("webp", 1), "u.webp", "image/webp");
+
+    const res = await app.request(`/i/${id}?variant=original`, {
+      headers: { Cookie: cookie },
+    });
+    expect(res.status).toBe(200);
+    expect(res.headers.get("content-type")).toBe("image/webp");
+    const body = Buffer.from(await res.arrayBuffer());
+    expect(createHash("sha256").update(body).digest("hex")).toBe(id);
+    await setKeepOriginal(false);
+  });
+
+  test("same-format ext is allowed", async () => {
+    await setKeepOriginal(true);
+    const id = await upload(await uniqueImage("gif", 2), "u.gif", "image/gif");
+    const res = await app.request(`/i/${id}.gif?variant=original`, {
+      headers: { Cookie: cookie },
+    });
+    expect(res.status).toBe(200);
+    const body = Buffer.from(await res.arrayBuffer());
+    expect(createHash("sha256").update(body).digest("hex")).toBe(id);
+    await setKeepOriginal(false);
+  });
+
+  test("different-format ext returns 404 (no conversion)", async () => {
+    await setKeepOriginal(true);
+    const id = await upload(await uniqueImage("webp", 3), "u.webp", "image/webp");
+    const res = await app.request(`/i/${id}.png?variant=original`, {
+      headers: { Cookie: cookie },
+    });
+    expect(res.status).toBe(404);
+    await setKeepOriginal(false);
+  });
+
+  test("image without an original returns 404 (no master fallback)", async () => {
+    const id = await upload(await fixture("red.png"), "red.png", "image/png");
+    const { rows } = await tdb.pool.query(
+      "select count(*)::int as n from image_file where image_id = $1 and variant = 'original'",
+      [id],
+    );
+    expect(rows[0].n).toBe(0);
+    const res = await app.request(`/i/${id}?variant=original`, {
+      headers: { Cookie: cookie },
+    });
+    expect(res.status).toBe(404);
+  });
+
+  test("without auth returns 401", async () => {
+    const res = await app.request("/i/whatever?variant=original");
+    expect(res.status).toBe(401);
+  });
+
+  test("unknown variant returns 400", async () => {
+    const res = await app.request("/i/whatever?variant=foo", {
+      headers: { Cookie: cookie },
+    });
+    expect(res.status).toBe(400);
+  });
 });

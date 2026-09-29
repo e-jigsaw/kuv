@@ -35,6 +35,19 @@ iRoutes.get("/:idWithExt", requireAuth, async (c) => {
     return c.json({ error: "not found" }, 404);
   }
 
+  // ?variant=original → 保存された元バイト列をそのまま返す。
+  // 無ければ 404（master にはフォールバックしない）。ext は同形式のみ許可し、変換はしない。
+  const variant = c.req.query("variant");
+  if (variant !== undefined) {
+    if (variant !== "original") return c.json({ error: "invalid variant" }, 400);
+    const original = await getImageFile(c.var.db, id, "original");
+    if (!original) return c.json({ error: "not found" }, 404);
+    if (targetMime && targetMime !== original.filetype) {
+      return c.json({ error: "not found" }, 404);
+    }
+    return serve(c, original.filetype, original.data);
+  }
+
   const master = await getImageFile(c.var.db, id, "master");
   if (!master) return c.json({ error: "not found" }, 404);
 
