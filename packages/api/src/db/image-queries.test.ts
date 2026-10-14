@@ -59,11 +59,6 @@ test("insertImage with original stores both image_file rows", async () => {
     ["img-b"],
   );
   expect(rows.map((r) => r.variant)).toEqual(["master", "original"]);
-  const { rows: nullRows } = await t.pool.query(
-    "select count(*)::int as n from image_file where image_id = $1 and data is null",
-    ["img-b"],
-  );
-  expect(nullRows[0].n).toBe(2);
 });
 
 test("getSettings defaults keepOriginal to false when no row", async () => {
@@ -198,25 +193,6 @@ test("updateSettings upserts the single settings row", async () => {
   expect(await getSettings(t.db)).toEqual({ keepOriginal: false });
   // 後始末（他テストへの影響防止）
   await t.db.delete(settings);
-});
-
-test("image_file.data and image_derivative.data accept NULL", async () => {
-  await insertImage(
-    t.db,
-    { id: "img-null", userId: adminId, fileName: "n.png" },
-    master,
-  );
-  await t.pool.query(
-    "insert into image_derivative (image_id, key, filetype, data) values ($1, 'k', 'image/webp', null)",
-    ["img-null"],
-  );
-  const { rows } = await t.pool.query(
-    "select count(*)::int as n from image_file where image_id = $1 and data is null",
-    ["img-null"],
-  );
-  expect(rows[0].n).toBe(1);
-  // 他テストに漏れないよう消す
-  await deleteImage(t.db, "img-null", adminId);
 });
 
 test("listImageBlobKeys returns variant and derivative keys", async () => {

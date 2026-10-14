@@ -1,7 +1,7 @@
 import { defineConfig } from "tsup";
 
 export default defineConfig({
-  entry: { server: "src/server.ts", "scripts/migrate-blobs": "src/scripts/migrate-blobs.ts" },
+  entry: { server: "src/server.ts" },
   format: ["esm"],
   target: "node24",
   clean: true,

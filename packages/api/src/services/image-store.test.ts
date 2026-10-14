@@ -18,13 +18,13 @@ afterAll(async () => {
 
 const png = (b: number[]) => ({ filetype: "image/png" as const, data: Buffer.from(b) });
 
-test("saveImage puts master and original then inserts rows without data", async () => {
+test("saveImage puts master and original then inserts rows", async () => {
   const blob = createMemoryBlobStore();
   await saveImage(t.db, blob, { id: "s1", userId: adminId, fileName: "s1.png" }, png([1]), png([2, 2]));
   expect(await blob.head("s1/master")).toEqual({ size: 1 });
   expect(await blob.head("s1/original")).toEqual({ size: 2 });
   const { rows } = await t.pool.query(
-    "select count(*)::int as n from image_file where image_id = $1 and data is null",
+    "select count(*)::int as n from image_file where image_id = $1",
     ["s1"],
   );
   expect(rows[0].n).toBe(2);
