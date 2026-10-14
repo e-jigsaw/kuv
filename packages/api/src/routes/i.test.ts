@@ -1,8 +1,15 @@
 import type { Hono } from "hono";
 import sharp from "sharp";
 import { createHash } from "node:crypto";
-import { afterAll, beforeAll, describe, expect, test } from "vitest";
+import { afterAll, beforeAll, describe, expect, test, vi } from "vitest";
 import { createApp } from "../app";
+import {
+  createMemoryBlobStore,
+  derivativeBlobKey,
+  fileKey,
+  type BlobStore,
+} from "../services/blob-store";
+import { derivativeKey } from "../services/image-convert";
 import { hashPassword } from "../auth/password";
 import { fixture } from "../test/fixtures";
 import { seedAdmin, startTestDb, type TestDb } from "../test/db";
@@ -10,13 +17,15 @@ import type { AppBindings } from "../types";
 
 let tdb: TestDb;
 let app: Hono<AppBindings>;
+let blob: BlobStore;
 let cookie: string;
 
 beforeAll(async () => {
   process.env.KUV_JWT_SECRET = "test-secret";
   tdb = await startTestDb();
   await seedAdmin(tdb.db, "admin", await hashPassword("hunter2"));
-  app = createApp(tdb.db);
+  blob = createMemoryBlobStore();
+  app = createApp(tdb.db, blob);
 
   const res = await app.request("/api/auth/login", {
     method: "POST",
@@ -59,13 +68,10 @@ test("serves the master verbatim with content-type and cache headers", async () 
   );
   expect(res.headers.get("cross-origin-resource-policy")).toBe("cross-origin");
 
-  // master の bytes と一致（DB に入っている master を直接比較）
-  const { rows } = await tdb.pool.query(
-    "select data from image_file where image_id = $1 and variant = 'master'",
-    [id],
-  );
+  // master の bytes と一致（BlobStore に入っている master を直接比較）
+  const stored = await blob.get(fileKey(id, "master"));
   const body = Buffer.from(await res.arrayBuffer());
-  expect(Buffer.compare(body, Buffer.from(rows[0].data))).toBe(0);
+  expect(Buffer.compare(body, stored!)).toBe(0);
 });
 
 test("same-format ext also serves the master without creating a derivative", async () => {
@@ -96,6 +102,7 @@ test("converts to a requested format and caches the derivative", async () => {
     [id],
   );
   expect(rows[0].n).toBe(1);
+  expect(await blob.head(derivativeBlobKey(id, derivativeKey("image/webp")))).not.toBe(null);
 });
 
 test("a second request is served from the cache (no reconversion)", async () => {
@@ -104,13 +111,10 @@ test("a second request is served from the cache (no reconversion)", async () => 
   const first = await app.request(`/i/${id}.png`, { headers: { Cookie: cookie } });
   expect(first.status).toBe(200);
 
-  // キャッシュ行の data を既知のバイト列に書き換える。
+  // キャッシュ object を既知のバイト列に書き換える。
   // 2回目のレスポンスがこのバイト列なら、変換せずキャッシュから返した証明になる。
   const sentinel = Buffer.from("sentinel-bytes");
-  await tdb.pool.query(
-    "update image_derivative set data = $1 where image_id = $2",
-    [sentinel, id],
-  );
+  await blob.put(derivativeBlobKey(id, derivativeKey("image/png")), sentinel, "image/png");
 
   const second = await app.request(`/i/${id}.png`, { headers: { Cookie: cookie } });
   expect(second.status).toBe(200);
@@ -171,6 +175,40 @@ test("empty extension (/i/<id>.) returns 404", async () => {
 test("multiple dots resolve to an unknown extension and return 404", async () => {
   const res = await app.request("/i/a.b.c", { headers: { Cookie: cookie } });
   expect(res.status).toBe(404);
+});
+
+test("serves 404 when the master object is missing", async () => {
+  const id = await upload(
+    await sharp({ create: { width: 3, height: 3, channels: 3, background: { r: 1, g: 2, b: 3 } } })
+      .png()
+      .toBuffer(),
+    "m.png",
+    "image/png",
+  );
+  await blob.delete([fileKey(id, "master")]);
+  const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+  const res = await app.request(`/i/${id}`, { headers: { Cookie: cookie } });
+  expect(res.status).toBe(404);
+  expect(spy).toHaveBeenCalled();
+  spy.mockRestore();
+});
+
+test("re-converts when the derivative object is missing", async () => {
+  const id = await upload(
+    await sharp({ create: { width: 3, height: 3, channels: 3, background: { r: 4, g: 5, b: 6 } } })
+      .png()
+      .toBuffer(),
+    "dm.png",
+    "image/png",
+  );
+  const first = await app.request(`/i/${id}.webp`, { headers: { Cookie: cookie } });
+  expect(first.status).toBe(200);
+  await blob.delete([derivativeBlobKey(id, derivativeKey("image/webp"))]);
+
+  const second = await app.request(`/i/${id}.webp`, { headers: { Cookie: cookie } });
+  expect(second.status).toBe(200);
+  expect((await sharp(Buffer.from(await second.arrayBuffer())).metadata()).format).toBe("webp");
+  expect(await blob.head(derivativeBlobKey(id, derivativeKey("image/webp")))).not.toBe(null);
 });
 
 describe("variant=original", () => {
@@ -239,6 +277,21 @@ describe("variant=original", () => {
       headers: { Cookie: cookie },
     });
     expect(res.status).toBe(404);
+  });
+
+  test("serves 404 when the original object is missing", async () => {
+    await setKeepOriginal(true);
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      const id = await upload(await uniqueImage("webp", 4), "u.webp", "image/webp");
+      await blob.delete([fileKey(id, "original")]);
+      const res = await app.request(`/i/${id}?variant=original`, { headers: { Cookie: cookie } });
+      expect(res.status).toBe(404);
+      expect(spy).toHaveBeenCalled();
+    } finally {
+      spy.mockRestore();
+      await setKeepOriginal(false);
+    }
   });
 
   test("without auth returns 401", async () => {

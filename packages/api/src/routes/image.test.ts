@@ -3,6 +3,7 @@ import { afterAll, beforeAll, expect, test } from "vitest";
 import sharp from "sharp";
 import { settings } from "@kuv/shared";
 import { createApp } from "../app";
+import { createMemoryBlobStore, fileKey, type BlobStore } from "../services/blob-store";
 import { hashPassword } from "../auth/password";
 import { fixture } from "../test/fixtures";
 import { seedAdmin, startTestDb, type TestDb } from "../test/db";
@@ -10,13 +11,15 @@ import type { AppBindings } from "../types";
 
 let tdb: TestDb;
 let app: Hono<AppBindings>;
+let blob: BlobStore;
 let cookie: string;
 
 beforeAll(async () => {
   process.env.KUV_JWT_SECRET = "test-secret";
   tdb = await startTestDb();
   await seedAdmin(tdb.db, "admin", await hashPassword("hunter2"));
-  app = createApp(tdb.db);
+  blob = createMemoryBlobStore();
+  app = createApp(tdb.db, blob);
   cookie = await loginCookie();
 });
 
@@ -64,6 +67,7 @@ test("upload a png returns id and links", async () => {
   expect(json.file_name).toBe("red.png");
   expect(json.links.view).toBe(`/i/${json.id}`);
   expect(json.links.direct).toBe(`/i/${json.id}.png`);
+  expect(await blob.head(fileKey(json.id, "master"))).not.toBe(null);
 });
 
 test("uploading the same bytes twice dedupes to the same id", async () => {
@@ -134,6 +138,32 @@ test("delete removes an uploaded image", async () => {
     [id],
   );
   expect(rows[0].n).toBe(0);
+  expect(await blob.head(fileKey(id, "master"))).toBe(null);
+});
+
+test("re-upload after delete serves again", async () => {
+  const buf = await sharp({
+    create: { width: 5, height: 5, channels: 3, background: { r: 9, g: 9, b: 9 } },
+  })
+    .png()
+    .toBuffer();
+  const up1 = await app.request("/api/image", {
+    method: "POST",
+    headers: { Cookie: cookie },
+    body: form(buf, "g.png", "image/png"),
+  });
+  const { id } = (await up1.json()) as { id: string };
+  const del = await app.request(`/api/image/${id}`, { method: "DELETE", headers: { Cookie: cookie } });
+  expect(del.status).toBe(200);
+
+  const up2 = await app.request("/api/image", {
+    method: "POST",
+    headers: { Cookie: cookie },
+    body: form(buf, "g.png", "image/png"),
+  });
+  expect(up2.status).toBe(200);
+  const res = await app.request(`/i/${id}`, { headers: { Cookie: cookie } });
+  expect(res.status).toBe(200);
 });
 
 test("deleting a missing image returns 404", async () => {

@@ -21,4 +21,11 @@ export const env = {
     password: optional("KUV_DB_PASSWORD", "kuv"),
     database: optional("KUV_DB_DATABASE", "kuv"),
   }),
+  s3: () => ({
+    endpoint: required("KUV_S3_ENDPOINT"),
+    region: optional("KUV_S3_REGION", "us-east-1"),
+    bucket: required("KUV_S3_BUCKET"),
+    accessKeyId: required("KUV_S3_ACCESS_KEY"),
+    secretAccessKey: required("KUV_S3_SECRET_KEY"),
+  }),
 };

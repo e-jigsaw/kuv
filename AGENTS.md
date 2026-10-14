@@ -25,14 +25,24 @@ pnpm typecheck
 pnpm build
 ```
 
-開発用 Postgres は `docker compose up -d postgres`（db/user/pass すべて `kuv`、port 5432）。
+開発用 Postgres と S3 互換サーバ (SeaweedFS) は `docker compose --profile dev up -d postgres s3`。Postgres は db/user/pass すべて `kuv`、port 5432。S3 は :8333 で任意の認証情報を受け付ける (本番は MinIO)。初回は bucket を作る: `curl -X PUT http://localhost:8333/kuv`。
+
+ローカルで compose の api を動かす時は `.env` に次を書く (compose の `KUV_S3_*` は必須で既定値を持たない。`.env` は git 管理外):
+
+```
+KUV_S3_ENDPOINT=http://s3:8333
+KUV_S3_BUCKET=kuv
+KUV_S3_ACCESS_KEY=kuv
+KUV_S3_SECRET_KEY=kuv-dev-secret
+```
 
 ## Environment
 
-env の読み取りは `packages/api/src/env.ts` に集約されている。`KUV_JWT_SECRET`（必須）、`KUV_DB_{HOST,PORT,USER,PASSWORD,DATABASE}`（デフォルト: localhost / 5432 / kuv / kuv / kuv）。
+env の読み取りは `packages/api/src/env.ts` に集約されている。`KUV_JWT_SECRET`（必須）、`KUV_DB_{HOST,PORT,USER,PASSWORD,DATABASE}`（デフォルト: localhost / 5432 / kuv / kuv / kuv）。`KUV_S3_{ENDPOINT,REGION,BUCKET,ACCESS_KEY,SECRET_KEY}` — 画像バイナリの置き場 (S3 互換、path-style)。REGION は既定 `us-east-1`、他は必須。
 
 ## Notes
 
 - 認証は JWT cookie（`kuv_jwt`、`packages/api/src/middleware/auth.ts`）と API key ヘッダ。
-- 画像バイナリは Postgres に格納（ディスクではない）。本番 DB は外部の PostgreSQL（接続先は `.env` の `KUV_DB_*` で指定）。compose の postgres は dev 専用 (`docker compose up -d postgres`)。
+- 画像バイナリは S3 互換ストレージに格納（`packages/api/src/services/blob-store.ts`）。key は `<image_id>/<variant>` と `<image_id>/d/<derivative key>`。DB の `image_file.data` / `image_derivative.data` は移行前の旧格納で、新コードは読み書きしない（drop 予定）。既存 bytea の移行は `deploy/OBJECT-STORAGE.md`。
+- 本番 DB は外部の PostgreSQL（接続先は `.env` の `KUV_DB_*` で指定）。compose の postgres は dev 専用 (`docker compose up -d postgres`)。
 - デプロイは docker-compose（Caddy + api + web。DB は外部 PostgreSQL）。稼働中の旧 Picsur CT からの blue-green 移行手順は rewrite-design spec の「Phase 5 の移行戦略」を参照。

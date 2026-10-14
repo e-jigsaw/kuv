@@ -16,24 +16,25 @@ export interface TestDb {
   teardown: () => Promise<void>;
 }
 
-// migration SQL の場所（packages/shared/drizzle/0000_*.sql）
-function readMigrationSql(): string {
+// migration SQL（packages/shared/drizzle/NNNN_*.sql）をファイル名順に全部読む
+function readMigrationSqls(): string[] {
   const here = dirname(fileURLToPath(import.meta.url));
   const drizzleDir = join(here, "../../../shared/drizzle");
-  const file = readdirSync(drizzleDir).find(
-    (f) => f.startsWith("0000_") && f.endsWith(".sql"),
-  );
-  if (!file) throw new Error("migration SQL not found in " + drizzleDir);
-  return readFileSync(join(drizzleDir, file), "utf8");
+  const files = readdirSync(drizzleDir)
+    .filter((f) => /^\d{4}_.*\.sql$/.test(f))
+    .sort();
+  if (files.length === 0) throw new Error("migration SQL not found in " + drizzleDir);
+  return files.map((f) => readFileSync(join(drizzleDir, f), "utf8"));
 }
 
 export async function startTestDb(): Promise<TestDb> {
   const container = await new PostgreSqlContainer("postgres:17-alpine").start();
   const pool = new pg.Pool({ connectionString: container.getConnectionUri() });
 
-  // migration を適用（"--> statement-breakpoint" は SQL コメントなので無視される）
-  const sql = readMigrationSql();
-  await pool.query(sql);
+  // migration を番号順に適用（"--> statement-breakpoint" は SQL コメントなので無視される）
+  for (const sql of readMigrationSqls()) {
+    await pool.query(sql);
+  }
 
   const db = createDb(pool);
 

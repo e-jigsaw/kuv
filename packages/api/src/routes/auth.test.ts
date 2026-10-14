@@ -2,6 +2,7 @@ import { apikey } from "@kuv/shared";
 import type { Hono } from "hono";
 import { afterAll, beforeAll, expect, test } from "vitest";
 import { createApp } from "../app";
+import { createMemoryBlobStore } from "../services/blob-store";
 import { hashPassword } from "../auth/password";
 import { seedAdmin, startTestDb, type TestDb } from "../test/db";
 import type { AppBindings } from "../types";
@@ -22,7 +23,7 @@ beforeAll(async () => {
     name: "test",
   });
 
-  app = createApp(tdb.db);
+  app = createApp(tdb.db, createMemoryBlobStore());
 });
 
 afterAll(async () => {

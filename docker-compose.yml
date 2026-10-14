@@ -14,6 +14,15 @@ services:
     volumes:
       - db-data:/var/lib/postgresql/data
 
+  s3:
+    profiles: ["dev"]
+    image: chrislusf/seaweedfs:3.97
+    command: ["server", "-s3", "-dir=/data"]
+    ports:
+      - "8333:8333"
+    volumes:
+      - s3-data:/data
+
   api:
     build:
       context: .
@@ -26,6 +35,11 @@ services:
       KUV_DB_USER: ${KUV_DB_USER:-kuv}
       KUV_DB_PASSWORD: ${KUV_DB_PASSWORD:-kuv}
       KUV_DB_DATABASE: ${KUV_DB_DATABASE:-kuv}
+      KUV_S3_ENDPOINT: ${KUV_S3_ENDPOINT}
+      KUV_S3_REGION: ${KUV_S3_REGION:-us-east-1}
+      KUV_S3_BUCKET: ${KUV_S3_BUCKET}
+      KUV_S3_ACCESS_KEY: ${KUV_S3_ACCESS_KEY}
+      KUV_S3_SECRET_KEY: ${KUV_S3_SECRET_KEY}
 
   web:
     build:
@@ -50,3 +64,4 @@ services:
 
 volumes:
   db-data:
+  s3-data:

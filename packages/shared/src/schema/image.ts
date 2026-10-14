@@ -30,7 +30,7 @@ export const imageFile = pgTable(
       .references(() => image.id, { onDelete: "cascade" }),
     variant: text("variant").notNull(), // 'master' | 'original'
     filetype: text("filetype").notNull(),
-    data: bytea("data").notNull(),
+    data: bytea("data"), // 旧格納。object storage 移行後は NULL (drop は後日)
   },
   (t) => [
     unique().on(t.imageId, t.variant),
@@ -51,7 +51,7 @@ export const imageDerivative = pgTable(
     lastRead: timestamp("last_read", { withTimezone: true })
       .notNull()
       .defaultNow(),
-    data: bytea("data").notNull(),
+    data: bytea("data"), // 旧格納。object storage 移行後は NULL (drop は後日)
   },
   (t) => [unique().on(t.imageId, t.key)],
 );
