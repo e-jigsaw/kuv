@@ -6,6 +6,7 @@ import {
   listImageBlobKeys,
   type ImageMeta,
 } from "../db/image-queries";
+import { withKeyLock } from "../util/key-lock";
 import { fileKey, type BlobStore } from "./blob-store";
 import type { IngestFile } from "./image-ingest";
 
@@ -18,6 +19,19 @@ export async function saveImage(
   master: IngestFile,
   original?: IngestFile,
 ): Promise<void> {
+  return withKeyLock(`image:${meta.id}`, () => saveImageLocked(db, blob, meta, master, original));
+}
+
+async function saveImageLocked(
+  db: Db,
+  blob: BlobStore,
+  meta: Omit<ImageMeta, "masterFiletype">,
+  master: IngestFile,
+  original?: IngestFile,
+): Promise<void> {
+  // 同じ id（= 同じバイト）の行が既にあれば何もしない。
+  // route 側の dedupe チェックはロックの外なので、ここ（ロック内）で確認し直す。
+  if ((await findImageById(db, meta.id)) !== null) return;
   const putKeys: string[] = [];
   try {
     await blob.put(fileKey(meta.id, "master"), master.data, master.filetype);
@@ -51,6 +65,16 @@ export async function saveImage(
 // 削除。順序は「DB delete（cascade）→ S3 best-effort delete」。
 // S3 側の失敗はログだけ残して成功扱い（孤児は許容。sweep は後日）。
 export async function removeImage(
+  db: Db,
+  blob: BlobStore,
+  id: string,
+  userId: string,
+): Promise<boolean> {
+  // 同じ id の並行 saveImage と直列化する（delete 直後の再アップロードの object を消さないため）
+  return withKeyLock(`image:${id}`, () => removeImageLocked(db, blob, id, userId));
+}
+
+async function removeImageLocked(
   db: Db,
   blob: BlobStore,
   id: string,

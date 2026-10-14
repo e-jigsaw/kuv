@@ -46,14 +46,34 @@ test("saveImage removes put objects when the DB insert fails", async () => {
   expect(await blob.head("s2/original")).toBe(null);
 });
 
-test("saveImage keeps objects when a row for the same id already exists", async () => {
+test("saveImage returns without touching objects when a row for the same id already exists", async () => {
   const blob = createMemoryBlobStore();
   const meta = { id: "s4", userId: adminId, fileName: "s4.png" };
   await saveImage(t.db, blob, meta, png([1]), png([2]));
-  // 同じ id の二重 insert は PK 違反。先行 upload の object は消してはいけない
-  await expect(saveImage(t.db, blob, meta, png([1]), png([2]))).rejects.toThrow();
+  // 同じ id の再保存は no-op。先行 upload の object は触らない
+  await expect(saveImage(t.db, blob, meta, png([1]), png([2]))).resolves.toBeUndefined();
   expect(await blob.head("s4/master")).toEqual({ size: 1 });
   expect(await blob.head("s4/original")).toEqual({ size: 1 });
+  const { rows } = await t.pool.query("select count(*)::int as n from image where id = $1", ["s4"]);
+  expect(rows[0].n).toBe(1);
+});
+
+test("concurrent removeImage and saveImage of the same id end consistent", async () => {
+  for (const order of ["remove-first", "save-first"] as const) {
+    const id = `c-${order}`;
+    const blob = createMemoryBlobStore();
+    const meta = { id, userId: adminId, fileName: `${id}.png` };
+    await saveImage(t.db, blob, meta, png([1]), png([2]));
+    const ops =
+      order === "remove-first"
+        ? [removeImage(t.db, blob, id, adminId), saveImage(t.db, blob, meta, png([1]), png([2]))]
+        : [saveImage(t.db, blob, meta, png([1]), png([2])), removeImage(t.db, blob, id, adminId)];
+    await Promise.all(ops);
+    const { rows } = await t.pool.query("select count(*)::int as n from image where id = $1", [id]);
+    if (rows[0].n > 0) {
+      expect(await blob.head(`${id}/master`)).toEqual({ size: 1 });
+    }
+  }
 });
 
 test("saveImage leaves no row when blob.put fails", async () => {
