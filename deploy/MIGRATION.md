@@ -35,8 +35,9 @@ compose は postgres / api / web / caddy の 4 サービス（web は SSR を行
 ```bash
 docker compose up -d --build
 # スキーマ適用（migration runner は無いので psql で直接）
-docker compose exec -T postgres psql -U kuv -d kuv -v ON_ERROR_STOP=1 \
-  < packages/shared/drizzle/0000_nostalgic_baron_zemo.sql
+for f in packages/shared/drizzle/*.sql; do
+  docker compose exec -T postgres psql -U kuv -d kuv -v ON_ERROR_STOP=1 < "$f"
+done
 curl -sf http://localhost:8080/login | head -3   # SSR された HTML が返る
 curl -s  http://localhost:8080/api/auth/me        # 401 JSON が返る
 ```

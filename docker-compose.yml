@@ -35,11 +35,11 @@ services:
       KUV_DB_USER: ${KUV_DB_USER:-kuv}
       KUV_DB_PASSWORD: ${KUV_DB_PASSWORD:-kuv}
       KUV_DB_DATABASE: ${KUV_DB_DATABASE:-kuv}
-      KUV_S3_ENDPOINT: ${KUV_S3_ENDPOINT:-http://s3:8333}
+      KUV_S3_ENDPOINT: ${KUV_S3_ENDPOINT}
       KUV_S3_REGION: ${KUV_S3_REGION:-us-east-1}
-      KUV_S3_BUCKET: ${KUV_S3_BUCKET:-kuv}
-      KUV_S3_ACCESS_KEY: ${KUV_S3_ACCESS_KEY:-kuv}
-      KUV_S3_SECRET_KEY: ${KUV_S3_SECRET_KEY:-kuv-dev-secret}
+      KUV_S3_BUCKET: ${KUV_S3_BUCKET}
+      KUV_S3_ACCESS_KEY: ${KUV_S3_ACCESS_KEY}
+      KUV_S3_SECRET_KEY: ${KUV_S3_SECRET_KEY}
 
   web:
     build:

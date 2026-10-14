@@ -27,6 +27,15 @@ pnpm build
 
 開発用 Postgres と S3 互換サーバ (SeaweedFS) は `docker compose --profile dev up -d postgres s3`。Postgres は db/user/pass すべて `kuv`、port 5432。S3 は :8333 で任意の認証情報を受け付ける (本番は MinIO)。初回は bucket を作る: `curl -X PUT http://localhost:8333/kuv`。
 
+ローカルで compose の api を動かす時は `.env` に次を書く (compose の `KUV_S3_*` は必須で既定値を持たない。`.env` は git 管理外):
+
+```
+KUV_S3_ENDPOINT=http://s3:8333
+KUV_S3_BUCKET=kuv
+KUV_S3_ACCESS_KEY=kuv
+KUV_S3_SECRET_KEY=kuv-dev-secret
+```
+
 ## Environment
 
 env の読み取りは `packages/api/src/env.ts` に集約されている。`KUV_JWT_SECRET`（必須）、`KUV_DB_{HOST,PORT,USER,PASSWORD,DATABASE}`（デフォルト: localhost / 5432 / kuv / kuv / kuv）。`KUV_S3_{ENDPOINT,REGION,BUCKET,ACCESS_KEY,SECRET_KEY}` — 画像バイナリの置き場 (S3 互換、path-style)。REGION は既定 `us-east-1`、他は必須。
