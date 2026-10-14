@@ -43,6 +43,6 @@ env の読み取りは `packages/api/src/env.ts` に集約されている。`KUV
 ## Notes
 
 - 認証は JWT cookie（`kuv_jwt`、`packages/api/src/middleware/auth.ts`）と API key ヘッダ。
-- 画像バイナリは S3 互換ストレージに格納（`packages/api/src/services/blob-store.ts`）。key は `<image_id>/<variant>` と `<image_id>/d/<derivative key>`。DB の `image_file.data` / `image_derivative.data` は移行前の旧格納で、新コードは読み書きしない（drop 予定）。既存 bytea の移行は `deploy/OBJECT-STORAGE.md`。
+- 画像バイナリは S3 互換ストレージに格納（`packages/api/src/services/blob-store.ts`）。key は `<image_id>/<variant>` と `<image_id>/d/<derivative key>`。DB には実バイトを持たない（旧 bytea 格納と移行 CLI は 2026-10 に削除済み、経緯は git 履歴の `deploy/OBJECT-STORAGE.md`）。
 - 本番 DB は外部の PostgreSQL（接続先は `.env` の `KUV_DB_*` で指定）。compose の postgres は dev 専用 (`docker compose up -d postgres`)。
 - デプロイは docker-compose（Caddy + api + web。DB は外部 PostgreSQL）。稼働中の旧 Picsur CT からの blue-green 移行手順は rewrite-design spec の「Phase 5 の移行戦略」を参照。

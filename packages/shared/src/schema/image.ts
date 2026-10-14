@@ -7,7 +7,6 @@ import {
   unique,
   uuid,
 } from "drizzle-orm/pg-core";
-import { bytea } from "./bytea";
 import { user } from "./auth";
 
 // 画像メタデータ。id は アップロード内容の SHA-256 hex（content-addressed, dedupe）
@@ -20,7 +19,7 @@ export const image = pgTable("image", {
   fileName: text("file_name").notNull().default("image"),
 });
 
-// variant ごとの実バイト（master 必須 / original は keep_original 時のみ）
+// variant ごとのファイル情報。実バイトは object storage（master 必須 / original は keep_original 時のみ）
 export const imageFile = pgTable(
   "image_file",
   {
@@ -30,7 +29,6 @@ export const imageFile = pgTable(
       .references(() => image.id, { onDelete: "cascade" }),
     variant: text("variant").notNull(), // 'master' | 'original'
     filetype: text("filetype").notNull(),
-    data: bytea("data"), // 旧格納。object storage 移行後は NULL (drop は後日)
   },
   (t) => [
     unique().on(t.imageId, t.variant),
@@ -51,7 +49,6 @@ export const imageDerivative = pgTable(
     lastRead: timestamp("last_read", { withTimezone: true })
       .notNull()
       .defaultNow(),
-    data: bytea("data"), // 旧格納。object storage 移行後は NULL (drop は後日)
   },
   (t) => [unique().on(t.imageId, t.key)],
 );
