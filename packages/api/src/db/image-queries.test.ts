@@ -9,6 +9,7 @@ import {
   getSettings,
   insertDerivative,
   insertImage,
+  listImageBlobKeys,
   listImages,
   updateSettings,
 } from "./image-queries";
@@ -25,7 +26,7 @@ afterAll(async () => {
   await t.teardown();
 });
 
-const master = { filetype: "image/png", data: Buffer.from([1, 2, 3]) } as const;
+const master = { filetype: "image/png" } as const;
 
 test("findImageById returns null when absent", async () => {
   expect(await findImageById(t.db, "missing")).toBe(null);
@@ -51,18 +52,18 @@ test("insertImage with original stores both image_file rows", async () => {
     t.db,
     { id: "img-b", userId: adminId, fileName: "b.png" },
     master,
-    { filetype: "image/png", data: Buffer.from([9]) },
+    { filetype: "image/png" },
   );
   const { rows } = await t.pool.query(
     "select variant from image_file where image_id = $1 order by variant",
     ["img-b"],
   );
   expect(rows.map((r) => r.variant)).toEqual(["master", "original"]);
-  const { rows: fileRows } = await t.pool.query(
-    "select data from image_file where image_id = $1 and variant = 'master'",
+  const { rows: nullRows } = await t.pool.query(
+    "select count(*)::int as n from image_file where image_id = $1 and data is null",
     ["img-b"],
   );
-  expect(Buffer.from(fileRows[0].data)).toEqual(Buffer.from([1, 2, 3]));
+  expect(nullRows[0].n).toBe(2);
 });
 
 test("getSettings defaults keepOriginal to false when no row", async () => {
@@ -93,16 +94,13 @@ test("deleteImage removes only the owner's image and cascades files", async () =
   expect(rows[0].n).toBe(0);
 });
 
-test("getImageFile returns the master bytes and filetype", async () => {
+test("getImageFile returns the master filetype", async () => {
   await insertImage(
     t.db,
     { id: "img-f", userId: adminId, fileName: "f.png" },
-    { filetype: "image/png", data: Buffer.from([7, 8, 9]) },
+    { filetype: "image/png" },
   );
-  const f = await getImageFile(t.db, "img-f", "master");
-  expect(f).not.toBe(null);
-  expect(f!.filetype).toBe("image/png");
-  expect(Buffer.compare(Buffer.from(f!.data), Buffer.from([7, 8, 9]))).toBe(0);
+  expect(await getImageFile(t.db, "img-f", "master")).toEqual({ filetype: "image/png" });
 });
 
 test("getImageFile returns null for a missing variant", async () => {
@@ -110,7 +108,7 @@ test("getImageFile returns null for a missing variant", async () => {
 });
 
 test("insertDerivative then getDerivative round-trips and bumps last_read", async () => {
-  await insertDerivative(t.db, "img-f", "key-1", "image/webp", Buffer.from([1]));
+  await insertDerivative(t.db, "img-f", "key-1", "image/webp");
 
   const before = await t.pool.query(
     "select last_read from image_derivative where image_id = $1 and key = $2",
@@ -121,9 +119,7 @@ test("insertDerivative then getDerivative round-trips and bumps last_read", asyn
   await new Promise((r) => setTimeout(r, 20));
 
   const d = await getDerivative(t.db, "img-f", "key-1");
-  expect(d).not.toBe(null);
-  expect(d!.filetype).toBe("image/webp");
-  expect(Buffer.compare(Buffer.from(d!.data), Buffer.from([1]))).toBe(0);
+  expect(d).toEqual({ filetype: "image/webp" });
 
   const after = await t.pool.query(
     "select last_read from image_derivative where image_id = $1 and key = $2",
@@ -139,15 +135,14 @@ test("getDerivative returns null on miss", async () => {
 });
 
 test("insertDerivative ignores a duplicate (image_id, key)", async () => {
-  await insertDerivative(t.db, "img-f", "key-1", "image/webp", Buffer.from([9, 9]));
+  await insertDerivative(t.db, "img-f", "key-1", "image/png");
   const { rows } = await t.pool.query(
     "select count(*)::int as n from image_derivative where image_id = $1 and key = $2",
     ["img-f", "key-1"],
   );
   expect(rows[0].n).toBe(1);
-  // 先勝ち: data は最初の [1] のまま
-  const d = await getDerivative(t.db, "img-f", "key-1");
-  expect(Buffer.compare(Buffer.from(d!.data), Buffer.from([1]))).toBe(0);
+  // 先勝ち: filetype は最初の image/webp のまま
+  expect(await getDerivative(t.db, "img-f", "key-1")).toEqual({ filetype: "image/webp" });
 });
 
 test("listImages paginates newest first and returns total", async () => {
@@ -157,7 +152,7 @@ test("listImages paginates newest first and returns total", async () => {
     await insertImage(
       t.db,
       { id: n, userId: uid, fileName: `${n}.png` },
-      { filetype: "image/png", data: Buffer.from([1]) },
+      { filetype: "image/png" },
     );
     await new Promise((r) => setTimeout(r, 10));
   }
@@ -178,7 +173,7 @@ test("listImages returns empty rows with correct total past the end", async () =
   await insertImage(
     t.db,
     { id: "q1", userId: uid, fileName: "q1.png" },
-    { filetype: "image/png", data: Buffer.from([1]) },
+    { filetype: "image/png" },
   );
   const beyond = await listImages(t.db, uid, { limit: 24, offset: 24 });
   expect(beyond.rows).toEqual([]);
@@ -211,7 +206,6 @@ test("image_file.data and image_derivative.data accept NULL", async () => {
     { id: "img-null", userId: adminId, fileName: "n.png" },
     master,
   );
-  await t.pool.query("update image_file set data = null where image_id = $1", ["img-null"]);
   await t.pool.query(
     "insert into image_derivative (image_id, key, filetype, data) values ($1, 'k', 'image/webp', null)",
     ["img-null"],
@@ -221,4 +215,23 @@ test("image_file.data and image_derivative.data accept NULL", async () => {
     ["img-null"],
   );
   expect(rows[0].n).toBe(1);
+  // 他テストに漏れないよう消す
+  await deleteImage(t.db, "img-null", adminId);
+});
+
+test("listImageBlobKeys returns variant and derivative keys", async () => {
+  await insertImage(
+    t.db,
+    { id: "img-k", userId: adminId, fileName: "k.png" },
+    { filetype: "image/png" },
+    { filetype: "image/png" },
+  );
+  await insertDerivative(t.db, "img-k", "dk", "image/webp");
+  expect((await listImageBlobKeys(t.db, "img-k")).sort()).toEqual(
+    ["img-k/d/dk", "img-k/master", "img-k/original"].sort(),
+  );
+});
+
+test("listImageBlobKeys returns an empty list for an unknown image", async () => {
+  expect(await listImageBlobKeys(t.db, "no-such-image")).toEqual([]);
 });

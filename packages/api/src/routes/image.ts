@@ -2,14 +2,13 @@ import { MIME_TO_EXT, PAGE_SIZE, type SupportedMime } from "@kuv/shared";
 import { Hono } from "hono";
 import { requireAuth } from "../middleware/auth";
 import {
-  deleteImage,
   findImageById,
   findImageForUser,
   getSettings,
-  insertImage,
   listImages,
 } from "../db/image-queries";
 import { hashBuffer, processImage } from "../services/image-ingest";
+import { removeImage, saveImage } from "../services/image-store";
 import type { AppBindings } from "../types";
 
 export const imageRoutes = new Hono<AppBindings>();
@@ -88,8 +87,9 @@ imageRoutes.post("/", requireAuth, async (c) => {
   }
 
   const fileName = file.name || "image";
-  await insertImage(
+  await saveImage(
     c.var.db,
+    c.var.blob,
     { id: result.id, userId: user.id, fileName },
     result.master,
     result.original,
@@ -103,10 +103,10 @@ imageRoutes.post("/", requireAuth, async (c) => {
 });
 
 // 削除（要認証）。所有者一致のみ。
-// c.var.user.id は DB 由来の UUID（deleteImage は非 UUID を渡すと pg エラーを投げる契約）
+// c.var.user.id は DB 由来の UUID（removeImage は非 UUID を渡すと pg エラーを投げる契約）
 imageRoutes.delete("/:id", requireAuth, async (c) => {
   const id = c.req.param("id");
-  const ok = await deleteImage(c.var.db, id, c.var.user!.id);
+  const ok = await removeImage(c.var.db, c.var.blob, id, c.var.user!.id);
   if (!ok) return c.json({ error: "not found" }, 404);
   return c.json({ ok: true });
 });

@@ -2,7 +2,7 @@ import { image, imageDerivative, imageFile, settings } from "@kuv/shared";
 import type { ImageVariant } from "@kuv/shared";
 import { and, count, desc, eq } from "drizzle-orm";
 import type { Db } from "../db";
-import type { IngestFile } from "../services/image-ingest";
+import { derivativeBlobKey, fileKey } from "../services/blob-store";
 
 export interface ImageMeta {
   id: string;
@@ -33,12 +33,13 @@ export async function findImageById(
 }
 
 // image + image_file(master, +original) を1トランザクションで挿入。
+// 実バイトは BlobStore 側（呼び出し側で put 済み）。ここではメタ行だけ書く。
 // 前提: 呼び出し前に findImageById で存在確認済みであること。同一 id の二重 insert は PK 違反で throw する。
 export async function insertImage(
   db: Db,
   meta: Omit<ImageMeta, "masterFiletype">,
-  master: IngestFile,
-  original?: IngestFile,
+  master: FileMeta,
+  original?: FileMeta,
 ): Promise<void> {
   await db.transaction(async (tx) => {
     await tx.insert(image).values({
@@ -50,14 +51,12 @@ export async function insertImage(
       imageId: meta.id,
       variant: "master",
       filetype: master.filetype,
-      data: master.data,
     });
     if (original) {
       await tx.insert(imageFile).values({
         imageId: meta.id,
         variant: "original",
         filetype: original.filetype,
-        data: original.data,
       });
     }
   });
@@ -91,27 +90,25 @@ export async function getSettings(db: Db): Promise<Settings> {
   return { keepOriginal: row?.keepOriginal ?? false };
 }
 
-export interface StoredFile {
+// image_file / image_derivative のメタ。実バイトは BlobStore にある
+export interface FileMeta {
   filetype: string;
-  data: Buffer;
 }
 
-// variant ('master' | 'original') の実バイトを取得。
+// variant ('master' | 'original') のメタを取得。
 export async function getImageFile(
   db: Db,
   imageId: string,
   variant: ImageVariant,
-): Promise<StoredFile | null> {
+): Promise<FileMeta | null> {
   const [row] = await db
-    .select({ filetype: imageFile.filetype, data: imageFile.data })
+    .select({ filetype: imageFile.filetype })
     .from(imageFile)
     .where(
       and(eq(imageFile.imageId, imageId), eq(imageFile.variant, variant)),
     )
     .limit(1);
-  if (!row) return null;
-  // data は nullable になったが、BlobStore 移行までは常に非 NULL。移行時に置き換える
-  return { filetype: row.filetype, data: row.data! };
+  return row ?? null;
 }
 
 // derivative を取得。hit なら last_read を更新する。
@@ -119,12 +116,11 @@ export async function getDerivative(
   db: Db,
   imageId: string,
   key: string,
-): Promise<StoredFile | null> {
+): Promise<FileMeta | null> {
   const [row] = await db
     .select({
       id: imageDerivative.id,
       filetype: imageDerivative.filetype,
-      data: imageDerivative.data,
     })
     .from(imageDerivative)
     .where(
@@ -138,8 +134,7 @@ export async function getDerivative(
     .set({ lastRead: new Date() })
     .where(eq(imageDerivative.id, row.id));
 
-  // data は nullable になったが、BlobStore 移行までは常に非 NULL。移行時に置き換える
-  return { filetype: row.filetype, data: row.data! };
+  return { filetype: row.filetype };
 }
 
 export interface ImageListEntry {
@@ -228,10 +223,25 @@ export async function insertDerivative(
   imageId: string,
   key: string,
   filetype: string,
-  data: Buffer,
 ): Promise<void> {
   await db
     .insert(imageDerivative)
-    .values({ imageId, key, filetype, data })
+    .values({ imageId, key, filetype })
     .onConflictDoNothing();
+}
+
+// 画像に紐づく object key を全部返す（削除時に BlobStore から消すため）
+export async function listImageBlobKeys(db: Db, imageId: string): Promise<string[]> {
+  const files = await db
+    .select({ variant: imageFile.variant })
+    .from(imageFile)
+    .where(eq(imageFile.imageId, imageId));
+  const derivs = await db
+    .select({ key: imageDerivative.key })
+    .from(imageDerivative)
+    .where(eq(imageDerivative.imageId, imageId));
+  return [
+    ...files.map((f) => fileKey(imageId, f.variant as ImageVariant)),
+    ...derivs.map((d) => derivativeBlobKey(imageId, d.key)),
+  ];
 }
