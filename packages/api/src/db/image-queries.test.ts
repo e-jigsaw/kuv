@@ -204,3 +204,21 @@ test("updateSettings upserts the single settings row", async () => {
   // 後始末（他テストへの影響防止）
   await t.db.delete(settings);
 });
+
+test("image_file.data and image_derivative.data accept NULL", async () => {
+  await insertImage(
+    t.db,
+    { id: "img-null", userId: adminId, fileName: "n.png" },
+    master,
+  );
+  await t.pool.query("update image_file set data = null where image_id = $1", ["img-null"]);
+  await t.pool.query(
+    "insert into image_derivative (image_id, key, filetype, data) values ($1, 'k', 'image/webp', null)",
+    ["img-null"],
+  );
+  const { rows } = await t.pool.query(
+    "select count(*)::int as n from image_file where image_id = $1 and data is null",
+    ["img-null"],
+  );
+  expect(rows[0].n).toBe(1);
+});

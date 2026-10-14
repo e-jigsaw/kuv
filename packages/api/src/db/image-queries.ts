@@ -109,7 +109,9 @@ export async function getImageFile(
       and(eq(imageFile.imageId, imageId), eq(imageFile.variant, variant)),
     )
     .limit(1);
-  return row ?? null;
+  if (!row) return null;
+  // data は nullable になったが、BlobStore 移行までは常に非 NULL。移行時に置き換える
+  return { filetype: row.filetype, data: row.data! };
 }
 
 // derivative を取得。hit なら last_read を更新する。
@@ -136,7 +138,8 @@ export async function getDerivative(
     .set({ lastRead: new Date() })
     .where(eq(imageDerivative.id, row.id));
 
-  return { filetype: row.filetype, data: row.data };
+  // data は nullable になったが、BlobStore 移行までは常に非 NULL。移行時に置き換える
+  return { filetype: row.filetype, data: row.data! };
 }
 
 export interface ImageListEntry {
