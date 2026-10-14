@@ -1,19 +1,21 @@
 import { Hono } from "hono";
-import { db, type Db } from "./db";
+import type { Db } from "./db";
 import { authMiddleware } from "./middleware/auth";
 import { authRoutes } from "./routes/auth";
 import { imageRoutes } from "./routes/image";
 import { iRoutes } from "./routes/i";
 import { settingsRoutes } from "./routes/settings";
 import { apikeyRoutes } from "./routes/apikey";
+import type { BlobStore } from "./services/blob-store";
 import type { AppBindings } from "./types";
 
-export function createApp(database: Db): Hono<AppBindings> {
+export function createApp(database: Db, blob: BlobStore): Hono<AppBindings> {
   const app = new Hono<AppBindings>();
 
-  // 全リクエストに db と user を注入
+  // 全リクエストに db / blob と user を注入
   app.use("*", async (c, next) => {
     c.set("db", database);
+    c.set("blob", blob);
     await next();
   });
   app.use("*", authMiddleware);
@@ -32,6 +34,3 @@ export function createApp(database: Db): Hono<AppBindings> {
 
   return app;
 }
-
-// アプリ用シングルトン（server.ts と既存 health テストが使う）
-export const app = createApp(db);

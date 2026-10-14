@@ -1,6 +1,7 @@
 import type { Hono } from "hono";
 import { afterAll, beforeAll, expect, test } from "vitest";
 import { createApp } from "../app";
+import { createMemoryBlobStore } from "../services/blob-store";
 import { hashPassword } from "../auth/password";
 import { seedAdmin, startTestDb, type TestDb } from "../test/db";
 import type { AppBindings } from "../types";
@@ -13,7 +14,7 @@ beforeAll(async () => {
   process.env.KUV_JWT_SECRET = "test-secret";
   tdb = await startTestDb();
   await seedAdmin(tdb.db, "admin", await hashPassword("hunter2"));
-  app = createApp(tdb.db);
+  app = createApp(tdb.db, createMemoryBlobStore());
 
   const res = await app.request("/api/auth/login", {
     method: "POST",

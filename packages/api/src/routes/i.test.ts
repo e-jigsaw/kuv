@@ -3,6 +3,7 @@ import sharp from "sharp";
 import { createHash } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { createApp } from "../app";
+import { createMemoryBlobStore, type BlobStore } from "../services/blob-store";
 import { hashPassword } from "../auth/password";
 import { fixture } from "../test/fixtures";
 import { seedAdmin, startTestDb, type TestDb } from "../test/db";
@@ -10,13 +11,15 @@ import type { AppBindings } from "../types";
 
 let tdb: TestDb;
 let app: Hono<AppBindings>;
+let blob: BlobStore;
 let cookie: string;
 
 beforeAll(async () => {
   process.env.KUV_JWT_SECRET = "test-secret";
   tdb = await startTestDb();
   await seedAdmin(tdb.db, "admin", await hashPassword("hunter2"));
-  app = createApp(tdb.db);
+  blob = createMemoryBlobStore();
+  app = createApp(tdb.db, blob);
 
   const res = await app.request("/api/auth/login", {
     method: "POST",
