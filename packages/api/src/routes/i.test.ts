@@ -281,13 +281,17 @@ describe("variant=original", () => {
 
   test("serves 404 when the original object is missing", async () => {
     await setKeepOriginal(true);
-    const id = await upload(await uniqueImage("webp", 4), "u.webp", "image/webp");
-    await blob.delete([fileKey(id, "original")]);
     const spy = vi.spyOn(console, "error").mockImplementation(() => {});
-    const res = await app.request(`/i/${id}?variant=original`, { headers: { Cookie: cookie } });
-    expect(res.status).toBe(404);
-    spy.mockRestore();
-    await setKeepOriginal(false);
+    try {
+      const id = await upload(await uniqueImage("webp", 4), "u.webp", "image/webp");
+      await blob.delete([fileKey(id, "original")]);
+      const res = await app.request(`/i/${id}?variant=original`, { headers: { Cookie: cookie } });
+      expect(res.status).toBe(404);
+      expect(spy).toHaveBeenCalled();
+    } finally {
+      spy.mockRestore();
+      await setKeepOriginal(false);
+    }
   });
 
   test("without auth returns 401", async () => {

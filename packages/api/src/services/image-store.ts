@@ -1,6 +1,7 @@
 import type { Db } from "../db";
 import {
   deleteImage,
+  findImageById,
   insertImage,
   listImageBlobKeys,
   type ImageMeta,
@@ -27,10 +28,22 @@ export async function saveImage(
     }
     await insertImage(db, meta, master, original);
   } catch (err) {
-    // put 済みの object を best-effort で片付けてから元のエラーを投げ直す
-    await blob.delete(putKeys).catch((e) => {
-      console.error(`failed to clean up blobs for ${meta.id}`, e);
-    });
+    // key は内容由来（id = content hash）なので、同じバイトの並行アップロードが
+    // 先に commit していたら、その object を消すと「DB にあるのに実体が無い」になる。
+    // 行が存在する（または確認に失敗した）時は片付けをスキップして元のエラーを投げ直す。
+    let skipCleanup = false;
+    try {
+      skipCleanup = (await findImageById(db, meta.id)) !== null;
+    } catch (e) {
+      skipCleanup = true;
+      console.error(`failed to check row before blob cleanup for ${meta.id}`, e);
+    }
+    if (!skipCleanup) {
+      // put 済みの object を best-effort で片付けてから元のエラーを投げ直す
+      await blob.delete(putKeys).catch((e) => {
+        console.error(`failed to clean up blobs for ${meta.id}`, e);
+      });
+    }
     throw err;
   }
 }
